@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -8,6 +8,45 @@ namespace LogGrokX.Tests
     public class TextModelTests
     {
         private const string Json = "{\"a\":1,\"b\":[1,2]}";
+
+        [TestMethod]
+        public void CollapsedTailOfManyLinesIsCopiedFully()
+        {
+            var lines = Enumerable.Range(0, 50).Select(i => $"line {i}").ToArray();
+            var model = new TextModel(1, string.Join("\n", lines));
+            Assert.IsNotNull(model.CollapsibleRanges);
+
+            var collapsed = model.CollapsibleRanges!.Select(r => r.start).ToHashSet();
+            var displayed = model.GetDisplayedText(collapsed);
+
+            Assert.IsFalse(displayed.Contains(">>>"), displayed);
+            StringAssert.Contains(displayed, "line 49");
+            StringAssert.Contains(displayed, "line 25");
+        }
+
+        [TestMethod]
+        public void DisplayedTextOfLongSingleLineIsNotTruncated()
+        {
+            var source = new string('x', 200_000);
+            var model = new TextModel(1, source);
+
+            Assert.AreEqual(source, model.GetDisplayedText(null));
+        }
+
+        [TestMethod]
+        public void DisplayedTextOfLongMultiLineIsNotTruncated()
+        {
+            var longLine = new string('y', 200_000);
+            var source = "first\n" + longLine + "\nlast";
+            var model = new TextModel(1, source);
+
+            var displayed = model.GetDisplayedText(null);
+
+            StringAssert.Contains(displayed, longLine);
+            Assert.IsFalse(displayed.Contains("..."));
+            StringAssert.StartsWith(displayed, "first");
+            StringAssert.EndsWith(displayed, "last");
+        }
 
         [TestMethod]
         public void ExpandedJsonIsIndented()

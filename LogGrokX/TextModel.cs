@@ -15,6 +15,9 @@ public class TextModel : IReadOnlyList<StringRange>
     
     private readonly List<StringRange>? _textLines;
     private readonly StringRange? _sourceText;
+    // Reference to the original (not truncated by BigLineSize) text used for copying.
+    // Only a reference is kept; lines are re-tokenized on demand to avoid extra memory.
+    private readonly string? _plainSource;
     private readonly Dictionary<int, StringRange>? _substitutions;
     private Dictionary<int, (int start, int length)>? _indexedCollapsibleRanges;
 
@@ -113,6 +116,7 @@ public class TextModel : IReadOnlyList<StringRange>
             
             _sourceText = StringRange.FromString(TextOperations.Normalize(source,
                 ApplicationSettings.Instance().ViewSettings));
+            _plainSource = source;
         }
     }
 
@@ -232,7 +236,15 @@ public class TextModel : IReadOnlyList<StringRange>
     public string GetDisplayedText(IReadOnlySet<int>? collapsedLines)
     {
         if (_textLines == null)
-            return (_sourceText?.ToString() ?? string.Empty).TrimEnd();
+            return _plainSource != null
+                ? TrimLine(_plainSource)
+                : (_sourceText?.ToString() ?? string.Empty).TrimEnd();
+
+        // Plain multi-line text: the only collapsible range is the "More N lines >>>" tail,
+        // which must not affect copying, so the whole original text is returned.
+        if (_plainSource != null)
+            return string.Join(Environment.NewLine,
+                _plainSource.Tokenize().Select(l => TrimLine(l.ToString()))).TrimEnd();
 
         var collapsedRanges = CollapsibleRanges == null || collapsedLines == null
             ? null
@@ -261,6 +273,8 @@ public class TextModel : IReadOnlyList<StringRange>
 
         return builder.ToString().TrimEnd();
     }
+
+    private static string TrimLine(string line) => line.TrimEnd('\0').TrimEnd();
 
     public override string ToString()
     {
