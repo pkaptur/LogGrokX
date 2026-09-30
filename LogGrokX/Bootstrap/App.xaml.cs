@@ -105,7 +105,7 @@ namespace LogGrokX.Bootstrap
             container.Register<ThreadGroupingService>(Reuse.Singleton);
             container.Register<MergedFilesViewService>(Reuse.Singleton);
             container.Register<UpdateCheckService>(Reuse.Singleton);
-            container.Register<MarkedLinesViewModel>();
+            container.Register<MarkedLinesViewModel>(setup: Setup.With(allowDisposableTransient: true));
             container.Register<MainWindow>();
         }
 

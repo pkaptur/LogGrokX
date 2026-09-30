@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -9,11 +10,12 @@ using System.Windows.Data;
 
 namespace LogGrokX.MarkedLines
 {
-    public class MarkedLinesViewModel : ViewModelBase
+    public class MarkedLinesViewModel : ViewModelBase, IDisposable
     {
         private readonly ObservableCollection<MarkedLineViewModel> _markedLines = new();
         private readonly ObservableCollection<DocumentViewModel> _documents;
         private readonly HashSet<DocumentViewModel> _alreadySubscribed = new();
+        private bool _disposed;
         
         public ObservableCollection<MarkedLineViewModel> MarkedLines => _markedLines;
 
@@ -32,11 +34,7 @@ namespace LogGrokX.MarkedLines
             _documents = documents;
             SubscribeToNewDocumentChanges(_documents);
 
-            _documents.CollectionChanged += (_, _) =>
-            {
-                SubscribeToNewDocumentChanges(_documents);
-                UpdateLinesCollection();
-            };
+            _documents.CollectionChanged += OnDocumentsCollectionChanged;
 
             ItemActivatedCommand = new DelegateCommand(
                 o =>
@@ -53,17 +51,40 @@ namespace LogGrokX.MarkedLines
         
         public event Action<DocumentViewModel, int>? NavigationRequested;
 
+        private void OnDocumentsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            SubscribeToNewDocumentChanges(_documents);
+            UpdateLinesCollection();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            _documents.CollectionChanged -= OnDocumentsCollectionChanged;
+            foreach (var document in _alreadySubscribed)
+                document.MarkedLinesChanged -= UpdateLinesCollection;
+            _alreadySubscribed.Clear();
+        }
+
         private void SubscribeToNewDocumentChanges(ObservableCollection<DocumentViewModel> documents)
         {
             var newDocuments = new HashSet<DocumentViewModel>(documents);
-            _alreadySubscribed.RemoveWhere(d => !newDocuments.Contains(d));
+            foreach (var document in _alreadySubscribed.ToArray())
+            {
+                if (newDocuments.Contains(document))
+                    continue;
+
+                document.MarkedLinesChanged -= UpdateLinesCollection;
+                _alreadySubscribed.Remove(document);
+            }
+
             foreach (var documentViewModel in documents)
             {
-                if (_alreadySubscribed.Contains(documentViewModel)) continue;
-                documentViewModel.MarkedLineViewModels.CollectionChanged +=
-                    (_, _) => UpdateLinesCollection();
-                documentViewModel.MarkedLinesChanged += UpdateLinesCollection; 
-                _alreadySubscribed.Add(documentViewModel);
+                if (_alreadySubscribed.Add(documentViewModel))
+                    documentViewModel.MarkedLinesChanged += UpdateLinesCollection;
             }
         }
 
@@ -88,12 +109,12 @@ namespace LogGrokX.MarkedLines
                     continue;
                 }
 
-                while (_markedLines[index].Index < lineNumber)
+                while (index < _markedLines.Count && _markedLines[index].Index < lineNumber)
                 {
                     _markedLines.RemoveAt(index);
                 }
 
-                if (_markedLines[index].Index > lineNumber)
+                if (index >= _markedLines.Count || _markedLines[index].Index > lineNumber)
                 {
                     _markedLines.Insert(index, new MarkedLineViewModel(document, lineNumber, text));
                 }
