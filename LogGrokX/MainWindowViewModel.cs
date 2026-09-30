@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -29,6 +30,8 @@ namespace LogGrokX
         private readonly ThreadGroupingService _threadGroupingService;
         private readonly MergedFilesViewService _mergedFilesViewService;
         private readonly UpdateCheckService _updateCheckService;
+        private readonly Dictionary<DocumentViewModel, DocumentContainer> _containers = new();
+        private bool _disposed;
 
         public ObservableCollection<DocumentViewModel> Documents { get; }
 
@@ -71,6 +74,7 @@ namespace LogGrokX
             _threadGroupingService.Changed += OnThreadGroupingChanged;
             _mergedFilesViewService.Changed += OnMergedFilesViewChanged;
             Documents = new ObservableCollection<DocumentViewModel>();
+            Documents.CollectionChanged += OnDocumentsChanged;
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
             MergedViewModel = new MergedViewModel(Documents, _searchAutocompleteCache, _savedSearchPatternStore, _applicationSettings, _threadGroupingService) { IsActive = _mergedFilesViewService.IsEnabled };
             OpenSettings = new DelegateCommand(OpenSettingsWindow);
@@ -227,24 +231,84 @@ namespace LogGrokX
 
         public void AddDocument(string fileName)
         {
-            if (File.Exists(fileName))
-                CurrentDocument = CreateDocument(fileName);
-            else
+            if (!File.Exists(fileName))
+            {
                 Trace.TraceError($"File {fileName} is not exists");
+                return;
+            }
+
+            var alreadyOpen = FindOpenDocument(fileName);
+            CurrentDocument = alreadyOpen ?? CreateDocument(fileName);
+        }
+
+        private DocumentViewModel? FindOpenDocument(string fileName)
+        {
+            var target = TryGetFullPath(fileName);
+            foreach (var document in Documents)
+            {
+                if (string.Equals(TryGetFullPath(document.DocumentId), target,
+                        StringComparison.OrdinalIgnoreCase))
+                    return document;
+            }
+
+            return null;
+        }
+
+        private static string TryGetFullPath(string path)
+        {
+            try
+            {
+                return Path.GetFullPath(path);
+            }
+            catch (Exception)
+            {
+                return path;
+            }
         }
 
         private DocumentViewModel CreateDocument(string fileName)
         {
             var container = new DocumentContainer(fileName, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService, _threadGroupingService);
-            var viewModel = container.GetDocumentViewModel();
-            Documents.Add(viewModel);
-            Documents.CollectionChanged += (o, e) =>
+            DocumentViewModel viewModel;
+            try
             {
-                if (Documents.Contains(viewModel))
-                    return;
+                viewModel = container.GetDocumentViewModel();
+            }
+            catch
+            {
                 container.Dispose();
-            };
+                throw;
+            }
+
+            _containers.Add(viewModel, container);
+            Documents.Add(viewModel);
             return viewModel;
+        }
+
+        private void OnDocumentsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var (document, container) in _containers)
+                {
+                    document.CloseFile();
+                    container.Dispose();
+                }
+                _containers.Clear();
+                return;
+            }
+
+            if (e.OldItems == null)
+                return;
+
+            foreach (DocumentViewModel document in e.OldItems)
+            {
+                if (_containers.Remove(document, out var container))
+                {
+                    document.CloseFile();
+                    container.Dispose();
+                }
+            }
         }
 
         public event EventHandler? ShowScratchPad;
@@ -256,6 +320,22 @@ namespace LogGrokX
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            _timelinePlacementService.Changed -= OnTimelinePlacementChanged;
+            _threadGroupingService.Changed -= OnThreadGroupingChanged;
+            _mergedFilesViewService.Changed -= OnMergedFilesViewChanged;
+            Documents.CollectionChanged -= OnDocumentsChanged;
+            MarkedLinesViewModel.Dispose();
+            MergedViewModel.Dispose();
+            foreach (var (document, container) in _containers)
+            {
+                document.CloseFile();
+                container.Dispose();
+            }
+            _containers.Clear();
             Documents.Clear();
         }
     }
