@@ -24,6 +24,16 @@ public class IndexTreeEdgeTests
     }
 
     [TestMethod]
+    public void LongsLeafUsesFirstValueWhenIndexDiffers()
+    {
+        var leaf = new LongsLeaf(1_000_000, 5);
+        leaf.Add(1_000_004, 6);
+
+        Assert.AreEqual(6, leaf.FindByValue(1_000_004).index);
+        CollectionAssert.AreEqual(new[] { 1_000_000L, 1_000_004L }, new List<long>(leaf));
+    }
+
+    [TestMethod]
     public void LongsLeafChainsWhenFull()
     {
         var first = new LongsLeaf(0, 0);

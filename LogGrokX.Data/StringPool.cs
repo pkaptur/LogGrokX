@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace LogGrokX.Data
 {
     public class StringPool
     {
+        private const int MaxPooledPerBucket = 64;
         private class StringPoolBucket
         {
             private readonly int _stringSize;
             private readonly ConcurrentBag<string> _pool = new();
+            private int _pooledCount;
             public StringPoolBucket(int stringSize)
             {
                 _stringSize = stringSize;
@@ -16,15 +19,25 @@ namespace LogGrokX.Data
             public string Rent()
             {
                 if (_pool.TryTake(out var result))
+                {
+                    Interlocked.Decrement(ref _pooledCount);
                     return result;
+                }
 
                 return new string('\0', _stringSize);
             }
 
             public void Return(string returned)
             {
+                if (Interlocked.Increment(ref _pooledCount) > MaxPooledPerBucket)
+                {
+                    Interlocked.Decrement(ref _pooledCount);
+                    return;
+                }
                 _pool.Add(returned);
             }
+
+            public int PooledCount => Volatile.Read(ref _pooledCount);
         }
 
         ConcurrentDictionary<int, StringPoolBucket> _buckets = new();
@@ -43,6 +56,12 @@ namespace LogGrokX.Data
                 throw new InvalidOperationException();
             
             bucket.Return(returned);
+        }
+
+        internal int GetPooledCount(int size)
+        {
+            var pooledStringSize = size < 32 ? 32 : Pow2Roundup(size);
+            return _buckets.TryGetValue(pooledStringSize, out var bucket) ? bucket.PooledCount : 0;
         }
         
         private static int Pow2Roundup (int x)

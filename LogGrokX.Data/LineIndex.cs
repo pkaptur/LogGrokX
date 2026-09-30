@@ -68,11 +68,16 @@ namespace LogGrokX.Data
                 {
                     while (currentIndex + minRangeSize > currentCount && !IsFinished)
                     {
-                        await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+                        var changed = _dataChangedSignal.Task;
+                        currentCount = Count;
+                        if (currentIndex + minRangeSize <= currentCount || IsFinished)
+                            break;
+                        await changed.WaitAsync(cancellationToken);
+                        ResetDataChangedSignal();
                         currentCount = Count;
                     }
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     yield break;
                 }
@@ -86,6 +91,19 @@ namespace LogGrokX.Data
                 currentIndex += rangeSize;
                 currentCount = Count;
             }
+        }
+
+        private volatile TaskCompletionSource _dataChangedSignal =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private void NotifyDataChanged() => _dataChangedSignal.TrySetResult();
+
+        private void ResetDataChangedSignal()
+        {
+            var current = _dataChangedSignal;
+            if (current.Task.IsCompleted)
+                _ = Interlocked.CompareExchange(ref _dataChangedSignal,
+                    new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously), current);
         }
 
         public int Count
@@ -104,20 +122,31 @@ namespace LogGrokX.Data
 
         public int Add(long lineStart)
         {
+            int lineNum;
             lock (_lineStarts)
             {
-                var lineNum = _lineStarts.Count;
+                lineNum = _lineStarts.Count;
                 _lineStarts.Add(lineStart);
-                return lineNum;
             }
+            NotifyDataChanged();
+            return lineNum;
         }
 
         public void Finish(int lastLength)
         {
-            _lastLineLength = lastLength;
+            lock (_lineStarts)
+                _lastLineLength = lastLength;
+            NotifyDataChanged();
         }
         
-        public bool IsFinished => _lastLineLength.HasValue;
+        public bool IsFinished
+        {
+            get
+            {
+                lock (_lineStarts)
+                    return _lastLineLength.HasValue;
+            }
+        }
 
         private readonly IndexTree<long, LongsLeaf> _lineStarts 
             = new(16, l => new LongsLeaf(l, 0));
