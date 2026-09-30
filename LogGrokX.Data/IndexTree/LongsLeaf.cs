@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace LogGrokX.Data.IndexTree
 {
@@ -8,16 +9,18 @@ namespace LogGrokX.Data.IndexTree
             ILeaf<long, LongsLeaf>
     {
         private const int Capacity = 64*1024;
-        private const int InitialCapacity = 1024;
         private readonly long _firstValue;
         private readonly int _firstIndex;
         private readonly List<int> _storage;
+        private int _count;
+        private LongsLeaf? _next;
         
         public LongsLeaf(long firstValue, int valueIndex)
         {
-            _storage = new List<int>(InitialCapacity) {0};
+            _storage = new List<int>(Capacity) {0};
             _firstIndex = valueIndex;
             _firstValue = firstValue;
+            Volatile.Write(ref _count, 1);
         }
 
         public LongsLeaf? Add(long value, int valueIndex)
@@ -25,17 +28,19 @@ namespace LogGrokX.Data.IndexTree
             if (_storage.Count < Capacity)
             {
                 _storage.Add((int)(value - _firstValue));
+                Volatile.Write(ref _count, _storage.Count);
                 return null;
             }
 
-            Next = new LongsLeaf(value, valueIndex);
-            return Next;
+            var next = new LongsLeaf(value, valueIndex);
+            Volatile.Write(ref _next, next);
+            return next;
         }
 
         public long this[int index] => _firstValue +_storage[index];
 
-        public int Count => _storage.Count;
-        public LongsLeaf? Next { get; private set; }
+        public int Count => Volatile.Read(ref _count);
+        public LongsLeaf? Next => Volatile.Read(ref _next);
         
         public override long FirstValue => _firstValue;
         public override int MinIndex => _firstIndex;
@@ -52,7 +57,7 @@ namespace LogGrokX.Data.IndexTree
 
         public override (int index, LongsLeaf leaf) FindByValue(long value)
         {
-            var index = _storage.BinarySearch((int) (value - _firstValue));
+            var index = _storage.BinarySearch(0, Volatile.Read(ref _count), (int) (value - _firstValue), null);
             return (_firstIndex + (index >= 0 ? index : ~index), this);
         }
 

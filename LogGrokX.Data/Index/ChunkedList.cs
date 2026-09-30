@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace LogGrokX.Data.Index;
 
@@ -18,16 +19,17 @@ public class ChunkedList<T> : IList<T>
 
     private IEnumerable<T> GetEnumerableFrom(int index)
     {
-        if (index >= _count)
+        var count = Volatile.Read(ref _count);
+        if (index >= count)
             throw new IndexOutOfRangeException();
 
         var chunkNum = index / _chunkSize;
         var from = index % _chunkSize;
 
-        while (index < _count)
+        while (index < count)
         {
             var currentChunk = _chunks[chunkNum];
-            var to = Math.Min(_count - chunkNum * _chunkSize, _chunkSize);
+            var to = Math.Min(count - chunkNum * _chunkSize, _chunkSize);
             
             for (var idx = from; idx < to; idx++)
                 yield return currentChunk[idx];
@@ -51,13 +53,13 @@ public class ChunkedList<T> : IList<T>
 
         var lastChunk = _chunks[^1];
         lastChunk[idx] = item;
-        _count++;
+        Volatile.Write(ref _count, _count + 1);
     }
 
     public void Clear()
     {
         _chunks.Clear();
-        _count = 0;
+        Volatile.Write(ref _count, 0);
     }
 
     public bool Contains(T item) => throw new NotSupportedException();
@@ -66,7 +68,7 @@ public class ChunkedList<T> : IList<T>
 
     public bool Remove(T item) => throw new NotSupportedException();
 
-    public int Count => _count;
+    public int Count => Volatile.Read(ref _count);
 
     public bool IsReadOnly => false;
 
@@ -80,7 +82,7 @@ public class ChunkedList<T> : IList<T>
     {
         get
         {
-            if (index >= _count)
+            if (index >= Volatile.Read(ref _count))
                 throw new IndexOutOfRangeException();
 
             return _chunks[index / _chunkSize][index % _chunkSize];

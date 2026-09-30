@@ -78,6 +78,24 @@ public class IndexerTests
     }
 
     [TestMethod]
+    public void GetIndexCountForComponentRefreshesCachedKeysAndLiveCounts()
+    {
+        using var indexer = new Indexer();
+        indexer.Add(Key("alpha beta one"), 0);
+        Assert.AreEqual(1, indexer.GetIndexCountForComponent(0, "alpha"));
+
+        indexer.Add(Key("alpha beta one"), 1);
+        Assert.AreEqual(2, indexer.GetIndexCountForComponent(0, "alpha"));
+
+        indexer.Add(Key("gamma delta two"), 2);
+        Assert.AreEqual(2, indexer.GetIndexCountForComponent(0, "alpha"));
+
+        indexer.Add(Key("alpha beta three"), 3);
+        Assert.AreEqual(3, indexer.GetIndexCountForComponent(0, "alpha"));
+        Assert.AreEqual(1, indexer.GetIndexCountForComponent(0, "gamma"));
+    }
+
+    [TestMethod]
     public void GetIndexKeyNumAndIndexRoundTrip()
     {
         using var indexer = new Indexer();

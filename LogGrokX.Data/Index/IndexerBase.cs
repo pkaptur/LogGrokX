@@ -15,6 +15,8 @@ public abstract class IndexerBase : IDisposable
 
     protected readonly ConcurrentDictionary<IndexKey, IndexKeyNum> KeysToNumbers;
     protected readonly ConcurrentDictionary<IndexKeyNum, IndexKey> NumbersToKeys;
+    private readonly ConcurrentDictionary<(int componentIndex, string value), (int keyCount, IndexKeyNum[] keys)>
+        _componentKeyCache = new();
 
     public IndexerBase(ConcurrentDictionary<IndexKey, IndexKeyNum> keysToNumbers,
         ConcurrentDictionary<IndexKeyNum, IndexKey> numbersToKeys)
@@ -40,10 +42,24 @@ public abstract class IndexerBase : IDisposable
     
     public int GetIndexCountForComponent(int componentIndex, string componentValue)
     {
-        return Indices
-            .Where(keyValuePair =>
-                NumbersToKeys[keyValuePair.Key].GetComponent(componentIndex).SequenceEqual(componentValue.AsSpan()))
-            .Sum(kv => kv.Value.Count);
+        var keyCount = Indices.Count;
+        var cacheKey = (componentIndex, componentValue);
+        if (!_componentKeyCache.TryGetValue(cacheKey, out var cached) || cached.keyCount != keyCount)
+        {
+            var keys = Indices.Keys
+                .Where(key => NumbersToKeys[key].GetComponent(componentIndex).SequenceEqual(componentValue.AsSpan()))
+                .ToArray();
+            cached = (keyCount, keys);
+            _componentKeyCache[cacheKey] = cached;
+        }
+
+        var sum = 0;
+        foreach (var key in cached.keys)
+        {
+            if (Indices.TryGetValue(key, out var index))
+                sum += index.Count;
+        }
+        return sum;
     }
 
     private protected static IndexTree<int, SimpleLeaf<int>> CreateIndexTree()
@@ -55,6 +71,7 @@ public abstract class IndexerBase : IDisposable
     public void Dispose()
     {
         Indices.Clear();
+        _componentKeyCache.Clear();
     }
 
     public void Finish()

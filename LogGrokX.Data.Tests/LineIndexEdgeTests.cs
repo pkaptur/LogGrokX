@@ -52,4 +52,35 @@ public class LineIndexEdgeTests
 
         CollectionAssert.AreEqual(new[] { (0, 1) }, ranges);
     }
+
+    [TestMethod]
+    public async Task FetchRangesWakesWhenEnoughLinesArrive()
+    {
+        var index = new LineIndex();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        await using var ranges = index.FetchRanges(cancellation.Token).GetAsyncEnumerator();
+        var next = ranges.MoveNextAsync().AsTask();
+
+        for (var i = 0; i <= 256; i++)
+            index.Add(i * 10L);
+
+        Assert.IsTrue(await next.WaitAsync(TimeSpan.FromMilliseconds(200)));
+        Assert.AreEqual((0, 256), ranges.Current);
+        index.Finish(10);
+    }
+
+    [TestMethod]
+    public async Task FetchRangesWakesWhenFinishedBelowBatchSize()
+    {
+        var index = new LineIndex();
+        index.Add(0);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        await using var ranges = index.FetchRanges(cancellation.Token).GetAsyncEnumerator();
+        var next = ranges.MoveNextAsync().AsTask();
+
+        index.Finish(10);
+
+        Assert.IsTrue(await next.WaitAsync(TimeSpan.FromMilliseconds(200)));
+        Assert.AreEqual((0, 1), ranges.Current);
+    }
 }
