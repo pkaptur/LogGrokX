@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using LogGrokX.Data.Index;
 
 namespace LogGrokX.Data.IndexTree
@@ -10,17 +11,20 @@ namespace LogGrokX.Data.IndexTree
         where T : IComparable<T>
     {
         private readonly List<LeafOrNode<T, TLeaf>> _subNodes;
+        private int _count;
 
         public TreeNode(int nodeCapacity, LeafOrNode<T, TLeaf> first, LeafOrNode<T, TLeaf> second)
         {
             Debug.Assert(nodeCapacity > 1);
             _subNodes = new List<LeafOrNode<T, TLeaf>>(nodeCapacity) {first, second};
+            Volatile.Write(ref _count, 2);
         }
 
         private TreeNode(int nodeCapacity, LeafOrNode<T, TLeaf> first)
         {
             Debug.Assert(nodeCapacity > 1);
             _subNodes = new List<LeafOrNode<T, TLeaf>>(nodeCapacity) {first};
+            Volatile.Write(ref _count, 1);
         }
 
         internal LeafOrNode<T, TLeaf> LastSubNode => _subNodes[^1];
@@ -28,7 +32,10 @@ namespace LogGrokX.Data.IndexTree
         public TreeNode<T, TLeaf>? TryAdd(LeafOrNode<T, TLeaf> node)
         {
             if (_subNodes.Count < _subNodes.Capacity)
+            {
                 _subNodes.Add(node);
+                Volatile.Write(ref _count, _subNodes.Count);
+            }
             else
                 return new TreeNode<T, TLeaf>(_subNodes.Capacity, node);
             
@@ -42,7 +49,7 @@ namespace LogGrokX.Data.IndexTree
 
         public override (int index, TLeaf leaf) FindByValue(T value)
         {
-            var index = _subNodes.BinarySearch(0, _subNodes.Count, value,
+            var index = _subNodes.BinarySearch(0, Volatile.Read(ref _count), value,
                 static (leafOrNode, t) => leafOrNode.FirstValue.CompareTo(t));
             var subNodeIndex = index >= 0 ? index : ~index - 1;
             return _subNodes[subNodeIndex].FindByValue(value);
@@ -50,7 +57,7 @@ namespace LogGrokX.Data.IndexTree
 
         private LeafOrNode<T, TLeaf> GetSubNodeByIndex(int index)
         {
-            var found = _subNodes.BinarySearch(0, _subNodes.Count, index,
+            var found = _subNodes.BinarySearch(0, Volatile.Read(ref _count), index,
                 static (leafOrNode, t) => leafOrNode.MinIndex.CompareTo(t));
             
             // When i is < 0, ~i is index of the first element, which MinIndex is greater than index.

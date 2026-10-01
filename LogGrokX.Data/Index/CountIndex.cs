@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
 
 namespace LogGrokX.Data.Index
 {
@@ -8,7 +9,15 @@ namespace LogGrokX.Data.Index
         public const int Granularity = 16384;
         private ImmutableList<List<(IndexKeyNum, int)>> _counts = ImmutableList<List<(IndexKeyNum, int)>>.Empty;
         private readonly IDictionary<IndexKeyNum,TIndex> _indices;
-        private bool _isFinished = false;
+        private volatile bool _isFinished;
+        private int _lastIndex = -1;
+        private LiveSnapshot? _liveSnapshot;
+
+        private sealed class LiveSnapshot(int index, IReadOnlyList<List<(IndexKeyNum, int)>> counts)
+        {
+            public int Index { get; } = index;
+            public IReadOnlyList<List<(IndexKeyNum, int)>> Counts { get; } = counts;
+        }
 
         public IReadOnlyList<List<(IndexKeyNum, int)>> Counts
         {
@@ -16,8 +25,15 @@ namespace LogGrokX.Data.Index
             {
                 if (_isFinished)
                     return _counts;
+                var index = Volatile.Read(ref _lastIndex);
+                var cached = Volatile.Read(ref _liveSnapshot);
+                if (cached != null && cached.Index == index)
+                    return cached.Counts;
                 var counts = _counts.Add(MakeCountsSnapshot());
-                return _isFinished ? _counts : counts;
+                if (_isFinished)
+                    return _counts;
+                Volatile.Write(ref _liveSnapshot, new LiveSnapshot(index, counts));
+                return counts;
             }
         }
 
@@ -30,6 +46,7 @@ namespace LogGrokX.Data.Index
         {
             if (currentIndex % Granularity == 0 && currentIndex != 0)
                 UpdateCountsSnapshot();
+            Volatile.Write(ref _lastIndex, currentIndex);
         }
 
         public void Finish(IDictionary<IndexKeyNum, TIndex> indices)

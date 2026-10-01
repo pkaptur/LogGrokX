@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace LogGrokX.Data.IndexTree
 {
@@ -9,6 +10,8 @@ namespace LogGrokX.Data.IndexTree
     {
         private readonly List<T> _storage;
         private readonly int _firstValueIndex;
+        private int _count;
+        private SimpleLeaf<T>? _next;
         private const int LeafCapacity = 1024;
         private const int InitialLeafCapacity = 16;
 
@@ -16,6 +19,7 @@ namespace LogGrokX.Data.IndexTree
         {
             _storage = new List<T>(InitialLeafCapacity) {firstValue};
             _firstValueIndex = valueIndex;
+            Volatile.Write(ref _count, 1);
         }
 
         public SimpleLeaf<T>? Add(T value, int valueIndex)
@@ -23,11 +27,13 @@ namespace LogGrokX.Data.IndexTree
             if (_storage.Count < LeafCapacity)
             {
                 _storage.Add(value);
+                Volatile.Write(ref _count, _storage.Count);
                 return null;
             }
 
-            Next = new SimpleLeaf<T>(value, valueIndex);
-            return Next;
+            var next = new SimpleLeaf<T>(value, valueIndex);
+            Volatile.Write(ref _next, next);
+            return next;
         }
 
         public override T FirstValue => _storage[0];
@@ -36,7 +42,7 @@ namespace LogGrokX.Data.IndexTree
 
         public T this[int index] => _storage[index];
 
-        public int Count => _storage.Count;
+        public int Count => Volatile.Read(ref _count);
 
         public override IEnumerable<T> GetEnumerableFromIndex(int index)
         {
@@ -50,11 +56,11 @@ namespace LogGrokX.Data.IndexTree
 
         public override (int index, SimpleLeaf<T> leaf) FindByValue(T value)
         {
-            var index = _storage.BinarySearch(value);
+            var index = _storage.BinarySearch(0, Volatile.Read(ref _count), value, null);
             return ((index >= 0 ? index : ~index) + _firstValueIndex, this);
         }
 
-        public SimpleLeaf<T>? Next { get; private set; }
+        public SimpleLeaf<T>? Next => Volatile.Read(ref _next);
 
         public IEnumerator<T> GetEnumerator()
         {
