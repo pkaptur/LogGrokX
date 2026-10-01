@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -11,6 +11,7 @@ namespace LogGrokX.Data
 {
     public class LineIndex : ILineIndex, IItemProvider<(long offset, int length)>
     {
+        private const int MinRangeSize = 256;
         public (long offset, int length) GetLine(int index)
         {
             Debug.Assert(index < Count);
@@ -58,7 +59,6 @@ namespace LogGrokX.Data
         public async IAsyncEnumerable<(int start, int count)> FetchRanges(
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            const int minRangeSize = 256;
             var currentIndex = 0;
             var currentCount = Count;
 
@@ -66,11 +66,11 @@ namespace LogGrokX.Data
             {
                 try
                 {
-                    while (currentIndex + minRangeSize > currentCount && !IsFinished)
+                    while (currentIndex + MinRangeSize > currentCount && !IsFinished)
                     {
                         var changed = _dataChangedSignal.Task;
                         currentCount = Count;
-                        if (currentIndex + minRangeSize <= currentCount || IsFinished)
+                        if (currentIndex + MinRangeSize <= currentCount || IsFinished)
                             break;
                         await changed.WaitAsync(cancellationToken);
                         ResetDataChangedSignal();
@@ -128,7 +128,8 @@ namespace LogGrokX.Data
                 lineNum = _lineStarts.Count;
                 _lineStarts.Add(lineStart);
             }
-            NotifyDataChanged();
+            if (lineNum > 0 && lineNum % MinRangeSize == 0)
+                NotifyDataChanged();
             return lineNum;
         }
 

@@ -96,6 +96,23 @@ public class IndexerTests
     }
 
     [TestMethod]
+    public void SubIndexerRefreshesCachedComponentsWhenItsOwnKeysAreAdded()
+    {
+        using var indexer = new Indexer();
+        indexer.Add(Key("alpha beta one"), 0);
+        indexer.Add(Key("alpha beta two"), 1);
+        using var subIndexer = indexer.CreateSubIndexer();
+        Assert.AreEqual(0, subIndexer.GetIndexCountForComponent(0, "alpha"));
+
+        subIndexer.Add(indexer.GetIndexKeyNum(0), 0);
+        Assert.AreEqual(1, subIndexer.GetIndexCountForComponent(0, "alpha"));
+        subIndexer.Add(indexer.GetIndexKeyNum(0), 1);
+        Assert.AreEqual(2, subIndexer.GetIndexCountForComponent(0, "alpha"));
+        subIndexer.Add(indexer.GetIndexKeyNum(1), 2);
+        Assert.AreEqual(3, subIndexer.GetIndexCountForComponent(0, "alpha"));
+    }
+
+    [TestMethod]
     public void GetIndexKeyNumAndIndexRoundTrip()
     {
         using var indexer = new Indexer();

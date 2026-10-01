@@ -17,12 +17,13 @@ namespace LogGrokX.Data.IndexTree
             where TLeaf : class, ILeaf<T, TLeaf>, ITreeNode<T>, IEnumerable<T>
         {
             var startIndex = index >= leaf.MinIndex ? index - leaf.MinIndex : 0;
-            for (var i = startIndex; i < leaf.Count; i++)
+            var next = leaf.Next;
+            var firstCount = leaf.Count;
+            for (var i = startIndex; i < firstCount; i++)
             {
                 yield return leaf[i];
             }
 
-            var next = leaf.Next;
             while (next != null)
             {
                 var tempNext = next.Next;

@@ -17,7 +17,7 @@ public class SubIndexer : IndexerBase
 
     public void Add(IndexKeyNum keyNumber, int lineNumber)
     {
-        var index = Indices.GetOrAdd(keyNumber, static _ => CreateIndexTree());
+        var index = GetOrCreateIndex(keyNumber);
             
         index.Add(lineNumber);
         CountIndex.Add(lineNumber, Indices);
@@ -51,7 +51,7 @@ public class Indexer : IndexerBase, IComponentIndexer
 
         _lineAndKeyIndex.Add(keyNumber);
             
-        var index = Indices.GetOrAdd(keyNumber, static _ => CreateIndexTree());
+        var index = GetOrCreateIndex(keyNumber);
             
         index.Add(lineNumber);
         CountIndex.Add(lineNumber, Indices);

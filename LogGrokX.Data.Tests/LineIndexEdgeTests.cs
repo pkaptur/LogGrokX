@@ -70,6 +70,49 @@ public class LineIndexEdgeTests
     }
 
     [TestMethod]
+    public async Task FetchRangesPublishesCompleteBatchesAndFinalPartialRange()
+    {
+        var index = new LineIndex();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await using var ranges = index.FetchRanges(cancellation.Token).GetAsyncEnumerator();
+        var next = ranges.MoveNextAsync().AsTask();
+        for (var i = 0; i < 256; i++)
+            index.Add(i * 10L);
+        Assert.IsFalse(next.IsCompleted);
+
+        index.Add(2560);
+        Assert.IsTrue(await next.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.AreEqual((0, 256), ranges.Current);
+
+        next = ranges.MoveNextAsync().AsTask();
+        for (var i = 257; i <= 512; i++)
+            index.Add(i * 10L);
+        Assert.IsTrue(await next.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.AreEqual((256, 256), ranges.Current);
+
+        next = ranges.MoveNextAsync().AsTask();
+        index.Add(5130);
+        Assert.IsFalse(next.IsCompleted);
+        index.Finish(7);
+        Assert.IsTrue(await next.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.AreEqual((512, 2), ranges.Current);
+        Assert.IsFalse(await ranges.MoveNextAsync());
+    }
+
+    [TestMethod]
+    public async Task FetchRangesCanCancelWhileWaitingForBatch()
+    {
+        var index = new LineIndex();
+        using var cancellation = new CancellationTokenSource();
+        await using var ranges = index.FetchRanges(cancellation.Token).GetAsyncEnumerator();
+        var next = ranges.MoveNextAsync().AsTask();
+        index.Add(0);
+        cancellation.Cancel();
+
+        Assert.IsFalse(await next.WaitAsync(TimeSpan.FromSeconds(2)));
+    }
+
+    [TestMethod]
     public async Task FetchRangesWakesWhenFinishedBelowBatchSize()
     {
         var index = new LineIndex();

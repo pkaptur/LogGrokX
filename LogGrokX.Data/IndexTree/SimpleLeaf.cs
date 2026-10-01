@@ -13,10 +13,11 @@ namespace LogGrokX.Data.IndexTree
         private int _count;
         private SimpleLeaf<T>? _next;
         private const int LeafCapacity = 1024;
+        private const int InitialLeafCapacity = 16;
 
         public SimpleLeaf(T firstValue, int valueIndex)
         {
-            _storage = new List<T>(LeafCapacity) {firstValue};
+            _storage = new List<T>(InitialLeafCapacity) {firstValue};
             _firstValueIndex = valueIndex;
             Volatile.Write(ref _count, 1);
         }

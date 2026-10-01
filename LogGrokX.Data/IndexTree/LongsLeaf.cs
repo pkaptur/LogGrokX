@@ -9,6 +9,7 @@ namespace LogGrokX.Data.IndexTree
             ILeaf<long, LongsLeaf>
     {
         private const int Capacity = 64*1024;
+        private const int InitialCapacity = 16;
         private readonly long _firstValue;
         private readonly int _firstIndex;
         private readonly List<int> _storage;
@@ -17,7 +18,7 @@ namespace LogGrokX.Data.IndexTree
         
         public LongsLeaf(long firstValue, int valueIndex)
         {
-            _storage = new List<int>(Capacity) {0};
+            _storage = new List<int>(InitialCapacity) {0};
             _firstIndex = valueIndex;
             _firstValue = firstValue;
             Volatile.Write(ref _count, 1);

@@ -1,4 +1,4 @@
-﻿using LogGrokX.Data.Virtualization;
+using LogGrokX.Data.Virtualization;
 using System;
 using System.Buffers;
 using System.IO;
