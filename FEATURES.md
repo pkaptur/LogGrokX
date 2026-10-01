@@ -17,6 +17,7 @@ and shows the relevant configuration or core API with a ready-to-adapt snippet.
 - [🧾 Filtering](#-filtering)
 - [⏳ Time filter and timeline](#-time-filter-and-timeline)
 - [📦 JSON/XML folding](#-jsonxml-folding)
+- [🔣 HEX to text](#-hex-to-text)
 - [🎨 Color rules](#-color-rules)
 - [📌 Marked lines](#-marked-lines)
 - [🔠 Text zoom](#-text-zoom)
@@ -227,6 +228,36 @@ The implementation lives in `Controls/TextRender`
 `FoldingManager`). Templates bind it via `textRender:TextView.SharedFoldingState`
 using the same `TextModel.UniqueId`, otherwise expansion falls out of sync.
 
+## 🔣 HEX to text
+
+**Business value.** Network, device and protocol logs often dump payloads as HEX
+bytes. Reading `48656C6C6F20776F726C64` as `Hello world` by hand is slow and
+error-prone. When a row contains HEX that decodes to readable text, the same
+`BIN` toggle that decodes Base64/PEM (see [Base64 decoding](#-base64-decoding))
+appears; clicking it replaces the HEX fragments with the decoded string together
+with any Base64/PEM in the row, clicking again restores the original value. Per
+cell, HEX can be toggled separately with **Decode HEX** in the context menu.
+
+```csharp
+using LogGrokX;
+
+HexText.TryDecode("Received: 48 65 6C 6C 6F 20 77 6F 72 6C 64", out var text); // "Received: Hello world"
+```
+
+`HexText` finds runs longer than 64 bits, i.e. at least 9 bytes (contiguous, separated by space, `-`,
+`:` or `,`, optionally `0x`-prefixed) and decodes them as UTF-8, then as
+UTF-16LE. A run is converted only if the result is printable text with at least
+one letter, so hashes, GUIDs and plain numbers are not treated as HEX. Anything up to 64 bits
+(`0x80070005`, `0x4142434445464748`) is a number, and so is a contiguous token of
+digits `0-9` only (`41424344454647484950`). HEX values
+inside JSON strings and XML text/attributes are decoded too: the result is
+escaped (`\"`, `\n`, `&lt;`, `&amp;`, ...), so the payload stays valid and keeps
+its JSON/XML folding. HEX that decodes to JSON or XML is formatted as well.
+Binary payloads are not decoded to text, but a HEX-encoded X.509 certificate,
+SubjectPublicKeyInfo or CryptoAPI `PUBLICKEYBLOB` is recognized and shown as a
+key description (like the Base64 path). "Copy" copies
+the value as displayed; "Copy as native" keeps the original HEX.
+
 ## 🎨 Color rules
 
 **Business value.** The eye finds errors faster than any search. Color rules
@@ -408,8 +439,8 @@ decoded value is written back so the document stays valid and keeps folding:
   (`&lt;`, `&amp;`, `&quot;` …).
 
 ```text
-{"token":"eyJhbGciOiJLU04iLCJ0eXAiOiJKV1QiLCJzZXIiOiJlbXB0eSJ9","n":1}
-→ {"token":{"alg":"KSN","typ":"JWT","ser":"empty"},"n":1}
+{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInNlciI6ImVtcHR5In0","n":1}
+→ {"token":{"alg":"HS256","typ":"JWT","ser":"empty"},"n":1}
 ```
 
 Both the standard (`+/`) and URL-safe (`-_`) alphabets are accepted, with or

@@ -10,10 +10,14 @@ public class LinePartViewModel : ViewModelBase
     private readonly int _uniqueId;
     private readonly bool _detectBase64;
     private readonly TextModel _originalTextModel;
-    private readonly TextModel?[] _decodedTextModels = new TextModel?[(int)Base64Content.All + 1];
+    private const int HexDecodedFlag = (int)Base64Content.All + 1;
+
+    private readonly TextModel?[] _decodedTextModels = new TextModel?[HexDecodedFlag * 2];
     private Base64Content? _content;
     private IReadOnlyList<StructuredSpan>? _structuredSpans;
     private Base64Content _decoded;
+    private bool? _isHex;
+    private bool _isHexDecoded;
 
     public LinePartViewModel(int uniqueId, string source, bool detectBase64 = true)
     {
@@ -23,9 +27,9 @@ public class LinePartViewModel : ViewModelBase
         OriginalText = source;
     }
 
-    public TextModel TextModel => _decoded == Base64Content.None
-        ? _originalTextModel
-        : _decodedTextModels[(int)_decoded] ?? _originalTextModel;
+    public TextModel TextModel => IsDecoded
+        ? _decodedTextModels[DecodedKey] ?? _originalTextModel
+        : _originalTextModel;
 
     public string OriginalText { get; }
 
@@ -33,13 +37,34 @@ public class LinePartViewModel : ViewModelBase
 
     public bool IsPem => Content.HasFlag(Base64Content.Pem);
 
+    public bool IsHex => _isHex ??= _detectBase64 && HexText.ContainsDecodableHex(OriginalText);
+
     public bool IsDecoded
     {
-        get => _decoded != Base64Content.None;
+        get => _decoded != Base64Content.None || _isHexDecoded;
         set
         {
             SetDecoded(Base64Content.Pem, value);
             SetDecoded(Base64Content.Base64, value);
+            IsHexDecoded = value;
+        }
+    }
+
+    public bool IsHexDecoded
+    {
+        get => _isHexDecoded;
+        set
+        {
+            if (value && !IsHex)
+                value = false;
+            if (_isHexDecoded == value)
+                return;
+
+            _isHexDecoded = value;
+            EnsureDecodedTextModel();
+            InvokePropertyChanged();
+            InvokePropertyChanged(nameof(IsDecoded));
+            InvokePropertyChanged(nameof(TextModel));
         }
     }
 
@@ -70,18 +95,29 @@ public class LinePartViewModel : ViewModelBase
         if (_decoded.HasFlag(kind) == value)
             return;
 
-        var decoded = value ? _decoded | kind : _decoded & ~kind;
-        if (decoded != Base64Content.None && _decodedTextModels[(int)decoded] == null)
-        {
-            Base64Detector.TryDecode(OriginalText, decoded, out var text, out _, StructuredSpans);
-            _decodedTextModels[(int)decoded] = new TextModel(
-                HashCode.Combine(_uniqueId, nameof(Base64Content), (int)decoded), text);
-        }
-
-        _decoded = decoded;
+        _decoded = value ? _decoded | kind : _decoded & ~kind;
+        EnsureDecodedTextModel();
         InvokePropertyChanged(kind == Base64Content.Pem ? nameof(IsPemDecoded) : nameof(IsBase64Decoded));
         InvokePropertyChanged(nameof(IsDecoded));
         InvokePropertyChanged(nameof(TextModel));
+    }
+
+    private int DecodedKey => (int)_decoded + (_isHexDecoded ? HexDecodedFlag : 0);
+
+    private void EnsureDecodedTextModel()
+    {
+        var key = DecodedKey;
+        if (key == 0 || _decodedTextModels[key] != null)
+            return;
+
+        var text = OriginalText;
+        if (_decoded != Base64Content.None)
+            Base64Detector.TryDecode(OriginalText, _decoded, out text, out _, StructuredSpans);
+        if (_isHexDecoded && HexText.TryDecode(text, out var hexDecoded))
+            text = hexDecoded;
+
+        _decodedTextModels[key] = new TextModel(
+            HashCode.Combine(_uniqueId, nameof(Base64Content), key), text);
     }
 
     public override string ToString() => OriginalText;

@@ -102,6 +102,18 @@
                 <ui:SymbolIcon Symbol="Code24" />
             </MenuItem.Icon>
         </MenuItem>
+        <MenuItem Header="Decode HEX"
+                  IsCheckable="True"
+                  IsChecked="{Binding PlacementTarget.DataContext.IsHexDecoded, Mode=TwoWay,
+                            RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}"
+                  Visibility="{Binding PlacementTarget.DataContext.IsHex,
+                            Converter={StaticResource BooleanToVisibilityConverter},
+                            FallbackValue={x:Static Visibility.Collapsed},
+                            RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}">
+            <MenuItem.Icon>
+                <ui:SymbolIcon Symbol="NumberSymbol24" />
+            </MenuItem.Icon>
+        </MenuItem>
         <MenuItem Header="Exclude" Style="{StaticResource FilterContextMenuItem}"
                   DataContext="{Binding DataContext}"
                   d:DataContext="{d:DesignInstance Type={x:Type logGrokCore:LogViewModel}, IsDesignTimeCreatable=False}">
