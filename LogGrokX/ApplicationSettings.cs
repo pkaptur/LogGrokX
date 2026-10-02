@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -47,6 +47,10 @@ namespace LogGrokX
             ViewSettings.TimelineAtTop = isAtTop;
             SaveViewSettingValue("TimelineAtTop", isAtTop ? "true" : "false");
         }
+
+        public void SetTimelineVisible(bool isVisible) =>
+            SetViewSetting(ViewSettings.TimelineVisible, isVisible,
+                value => ViewSettings.TimelineVisible = value, nameof(ViewSettings.TimelineVisible));
 
         public void SetLogFontSize(double fontSize)
         {
