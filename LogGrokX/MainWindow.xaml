@@ -20,6 +20,8 @@
                 Width="1360"
                 Height="860"
                 mc:Ignorable="d"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
+                FontFamily="{StaticResource AppFontFamily}"
                 Title="{Binding WindowTitle}">
     <ui:FluentWindow.Resources>
         <ResourceDictionary>
@@ -30,6 +32,12 @@
                 <ResourceDictionary Source="Styles/ListViewItemStyle.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <localControls:StringShortenerConvereter x:Key="StringShortenerConverter" />
+            <Style x:Key="TitleBarToggleButtonStyle" TargetType="{x:Type ToggleButton}"
+                   BasedOn="{StaticResource ToolbarToggleButtonStyle}">
+                <Setter Property="Width" Value="32" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="6" />
+            </Style>
             <avalonDockExtensions:MenuItemCollection x:Key="AdditionalDocumentMenuItems">
                 <MenuItem Header="Copy Filename" Command="{Binding Model.Content.CopyFilenameToClipboardCommand}" />
                 <MenuItem Header="Copy Full Path" Command="{Binding Model.Content.CopyPathToClipboardCommand}" />
@@ -46,7 +54,7 @@
         <KeyBinding Command="{Binding ResetZoomCommand}" Gesture="CTRL+D0" />
     </ui:FluentWindow.InputBindings>
 
-    <Grid>
+    <Grid UseLayoutRounding="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -57,28 +65,59 @@
                 <ui:ImageIcon Source="pack://application:,,,/app.ico" Width="16" Height="16" />
             </ui:TitleBar.Icon>
             <ui:TitleBar.TrailingContent>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <ui:Button Appearance="Transparent"
+                <StackPanel Margin="0,0,8,0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
+                               Appearance="Primary"
                                ToolTip="Open log file (Ctrl+O)"
                                Command="{Binding OpenFileCommand}">
                         <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" />
                     </ui:Button>
-                    <ui:Button Appearance="Transparent"
-                               ToolTip="Increase text size (Ctrl+=)"
-                               Command="{Binding ZoomInCommand}">
-                        <ui:SymbolIcon Symbol="ZoomIn24" FontSize="16" />
-                    </ui:Button>
-                    <ui:Button Appearance="Transparent"
-                               ToolTip="Decrease text size (Ctrl+-)"
-                               Command="{Binding ZoomOutCommand}">
+                    <Border Width="1" Height="16" Margin="6,0" VerticalAlignment="Center"
+                            Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
+                               ToolTip="Decrease text size (Ctrl+-)" Command="{Binding ZoomOutCommand}">
                         <ui:SymbolIcon Symbol="ZoomOut24" FontSize="16" />
                     </ui:Button>
-                    <ui:Button Appearance="Transparent"
-                               ToolTip="Reset text size (Ctrl+0)"
-                               Command="{Binding ResetZoomCommand}">
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
+                               ToolTip="Reset text size (Ctrl+0)" Command="{Binding ResetZoomCommand}">
                         <ui:SymbolIcon Symbol="ZoomFit24" FontSize="16" />
                     </ui:Button>
-                    <ui:Button Appearance="Transparent"
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
+                               ToolTip="Increase text size (Ctrl+=)" Command="{Binding ZoomInCommand}">
+                        <ui:SymbolIcon Symbol="ZoomIn24" FontSize="16" />
+                    </ui:Button>
+                    <Border Width="1" Height="16" Margin="6,0" VerticalAlignment="Center"
+                            Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
+                               Command="{Binding CycleTimelineCommand}"
+                               ToolTip="{Binding TimelineToolTip}">
+                        <ui:SymbolIcon FontSize="16">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="{x:Type ui:SymbolIcon}">
+                                    <Setter Property="Symbol" Value="ArrowDown24" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsTimelineAtTop}" Value="True">
+                                            <Setter Property="Symbol" Value="ArrowUp24" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsTimelineVisible}" Value="False">
+                                            <Setter Property="Symbol" Value="EyeOff24" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+                    </ui:Button>
+                    <ToggleButton Style="{StaticResource TitleBarToggleButtonStyle}"
+                                  IsChecked="{Binding IsGroupByThread, Mode=TwoWay}"
+                                  ToolTip="Group consecutive lines by thread">
+                        <ui:SymbolIcon Symbol="GroupList24" FontSize="16" />
+                    </ToggleButton>
+                    <ToggleButton Style="{StaticResource TitleBarToggleButtonStyle}"
+                                  IsChecked="{Binding IsMergedView, Mode=TwoWay}"
+                                  ToolTip="Show lines from multiple files merged by time">
+                        <ui:SymbolIcon Symbol="Merge24" FontSize="16" />
+                    </ToggleButton>
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
                                ToolTip="Toggle light / dark theme"
                                Command="{Binding ToggleThemeCommand}">
                         <ui:SymbolIcon FontSize="16">
@@ -94,30 +133,12 @@
                             </ui:SymbolIcon.Style>
                         </ui:SymbolIcon>
                     </ui:Button>
-                    <ToggleButton Margin="4,0"
-                                  VerticalAlignment="Center"
-                                  IsChecked="{Binding IsTimelineAtTop, Mode=TwoWay}"
-                                  ToolTip="Place the timeline at the top">
-                        <ui:SymbolIcon Symbol="ArrowSort24" FontSize="16" />
-                    </ToggleButton>
-                    <ToggleButton Margin="4,0"
-                                  VerticalAlignment="Center"
-                                  IsChecked="{Binding IsGroupByThread, Mode=TwoWay}"
-                                  ToolTip="Group consecutive lines by thread">
-                        <ui:SymbolIcon Symbol="GroupList24" FontSize="16" />
-                    </ToggleButton>
-                    <ToggleButton Margin="4,0"
-                                  VerticalAlignment="Center"
-                                  IsChecked="{Binding IsMergedView, Mode=TwoWay}"
-                                  ToolTip="Show lines from multiple files merged by time">
-                        <ui:SymbolIcon Symbol="Merge24" FontSize="16" />
-                    </ToggleButton>
-                    <ui:Button Appearance="Transparent"
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
                                ToolTip="Support"
                                Command="{Binding OpenSupportCommand}">
                         <ui:SymbolIcon Symbol="QuestionCircle24" FontSize="16" />
                     </ui:Button>
-                    <ui:Button Appearance="Transparent"
+                    <ui:Button Style="{StaticResource ToolbarButtonStyle}"
                                ToolTip="Open settings"
                                Command="{Binding OpenSettings}">
                         <ui:SymbolIcon Symbol="Settings24" FontSize="16" />
@@ -126,32 +147,74 @@
             </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
 
-        <DockingManager x:Name="DockingManager"
-                        Grid.Row="1"
-                        Theme="{Binding DockTheme}"
-                        GridSplitterWidth="10"
-                        GridSplitterHeight="10"
-                        avalonDockExtensions:BindingBehavior.CurrentDocument="{Binding CurrentDocument}"
-                        avalonDockExtensions:BindingBehavior.DocumentViewTemplate="{StaticResource DocumentTemplate}"
-                        avalonDockExtensions:BindingBehavior.DocumentsSource="{Binding Documents}"
-                        avalonDockExtensions:BindingBehavior.OnDocumentCloseCommand="{Binding OnDocumentCloseCommand}"
-                        avalonDockExtensions:DocumentContextMenu.AdditionalContextMenuItems="{StaticResource AdditionalDocumentMenuItems}">
-            <DockingManager.LayoutItemContainerStyle>
-                <Style TargetType="{x:Type LayoutItem}">
-                    <Setter Property="ToolTip" Value="{Binding Model.Content.Title}" />
-                    <Setter Property="Title" Value="{Binding Model.Content.Title}" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Model.Content.IsCurrentDocument}" Value="True">
-                            <Setter Property="Title" Value="{Binding Model.Content.Title}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Model.Content.IsCurrentDocument}" Value="False">
-                            <Setter Property="Title"
-                                    Value="{Binding Model.Content.Title,
-                            Converter={StaticResource StringShortenerConverter}, ConverterParameter=25}" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DockingManager.LayoutItemContainerStyle>
-        </DockingManager>
+        <Border Grid.Row="1" Margin="2,0,2,2" Padding="0"
+                Style="{StaticResource FluentCardStyle}">
+            <Grid>
+                <DockingManager x:Name="DockingManager"
+                                Theme="{Binding DockTheme}"
+                                GridSplitterWidth="10"
+                                GridSplitterHeight="10"
+                                avalonDockExtensions:BindingBehavior.CurrentDocument="{Binding CurrentDocument}"
+                                avalonDockExtensions:BindingBehavior.DocumentViewTemplate="{StaticResource DocumentTemplate}"
+                                avalonDockExtensions:BindingBehavior.DocumentsSource="{Binding Documents}"
+                                avalonDockExtensions:BindingBehavior.OnDocumentCloseCommand="{Binding OnDocumentCloseCommand}"
+                                avalonDockExtensions:DocumentContextMenu.AdditionalContextMenuItems="{StaticResource AdditionalDocumentMenuItems}">
+                    <DockingManager.LayoutItemContainerStyleSelector>
+                        <avalonDockExtensions:DocumentLayoutItemStyleSelector>
+                            <avalonDockExtensions:DocumentLayoutItemStyleSelector.DocumentStyle>
+                                <Style TargetType="{x:Type LayoutItem}">
+                                    <Setter Property="ToolTip" Value="{Binding Model.Content.Title}" />
+                                    <Setter Property="Title" Value="{Binding Model.Content.Title}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Model.Content.IsCurrentDocument}" Value="True">
+                                            <Setter Property="Title" Value="{Binding Model.Content.Title}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Model.Content.IsCurrentDocument}" Value="False">
+                                            <Setter Property="Title"
+                                                    Value="{Binding Model.Content.Title,
+                                            Converter={StaticResource StringShortenerConverter}, ConverterParameter=25}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </avalonDockExtensions:DocumentLayoutItemStyleSelector.DocumentStyle>
+                        </avalonDockExtensions:DocumentLayoutItemStyleSelector>
+                    </DockingManager.LayoutItemContainerStyleSelector>
+                </DockingManager>
+                <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                        CornerRadius="{StaticResource AppCardCornerRadius}">
+                    <Border.Style>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Documents.Count}" Value="0" />
+                                                <Condition Binding="{Binding IsMergedView}" Value="False" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                    </Border.Style>
+                    <StackPanel MaxWidth="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border Width="72" Height="72" HorizontalAlignment="Center"
+                                Style="{StaticResource FluentCardStyle}">
+                            <ui:SymbolIcon Symbol="DocumentText24" FontSize="32"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                        </Border>
+                        <TextBlock Margin="0,20,0,8" FontSize="24" FontWeight="SemiBold"
+                                   TextAlignment="Center" Text="Explore your logs" />
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   TextAlignment="Center" TextWrapping="Wrap"
+                                   Text="Open a log file or drag it into this window to search, filter and compare events." />
+                        <ui:Button Margin="0,20,0,0" HorizontalAlignment="Center" Appearance="Primary"
+                                   Command="{Binding OpenFileCommand}" Content="Open log file" />
+                        <TextBlock Margin="0,12,0,0" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="Ctrl+O to open a file  ·  Ctrl+F to search" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </ui:FluentWindow>
