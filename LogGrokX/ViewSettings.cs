@@ -1,4 +1,4 @@
-
+﻿
 namespace LogGrokX
 {
     public class ViewSettings
@@ -13,8 +13,6 @@ namespace LogGrokX
         public int BigLineSize { get; set; } = 9728;
 
         public bool TimelineAtTop { get; set; }
-
-        public bool TimelineVisible { get; set; } = true;
 
         public double LogFontSize { get; set; } = 12;
 

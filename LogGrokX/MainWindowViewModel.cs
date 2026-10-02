@@ -76,11 +76,10 @@ namespace LogGrokX
             Documents = new ObservableCollection<DocumentViewModel>();
             Documents.CollectionChanged += OnDocumentsChanged;
             MarkedLinesViewModel = markedLinesViewModelFactory(Documents);
-            MergedViewModel = new MergedViewModel(Documents, _searchAutocompleteCache, _savedSearchPatternStore, _applicationSettings, _threadGroupingService, _timelinePlacementService) { IsActive = _mergedFilesViewService.IsEnabled };
+            MergedViewModel = new MergedViewModel(Documents, _searchAutocompleteCache, _savedSearchPatternStore, _applicationSettings, _threadGroupingService) { IsActive = _mergedFilesViewService.IsEnabled };
             OpenSettings = new DelegateCommand(OpenSettingsWindow);
             OpenSupportCommand = new DelegateCommand(OpenSupport);
             ToggleThemeCommand = new DelegateCommand(ToggleTheme);
-            CycleTimelineCommand = new DelegateCommand(_timelinePlacementService.CyclePlacement);
             ZoomInCommand = new DelegateCommand(() => _textZoomService.Increase());
             ZoomOutCommand = new DelegateCommand(() => _textZoomService.Decrease());
             ResetZoomCommand = new DelegateCommand(() => _textZoomService.Reset());
@@ -120,8 +119,6 @@ namespace LogGrokX
 
         public ICommand ToggleThemeCommand { get; }
 
-        public ICommand CycleTimelineCommand { get; }
-
         public ICommand ZoomInCommand { get; }
 
         public ICommand ZoomOutCommand { get; }
@@ -138,19 +135,9 @@ namespace LogGrokX
             set => _timelinePlacementService.SetAtTop(value);
         }
 
-        public bool IsTimelineVisible => _timelinePlacementService.IsVisible;
-
-        public string TimelineToolTip => !IsTimelineVisible
-            ? "Timeline: off. Click to show at the top."
-            : IsTimelineAtTop
-                ? "Timeline: top. Click to move to the bottom."
-                : "Timeline: bottom. Click to hide.";
-
         private void OnTimelinePlacementChanged()
         {
             InvokePropertyChanged(nameof(IsTimelineAtTop));
-            InvokePropertyChanged(nameof(IsTimelineVisible));
-            InvokePropertyChanged(nameof(TimelineToolTip));
         }
 
         public bool IsGroupByThread

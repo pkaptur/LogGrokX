@@ -5,14 +5,10 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Windows;
-using System.Windows.Controls;
-using LogGrokX.AvalonDockExtensions;
 using LogGrokX.MarkedLines;
 using LogGrokX.Search;
 using LogGrokX.Theming;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Extensions.Configuration;
 
 namespace LogGrokX.Tests;
 
@@ -32,15 +28,6 @@ public class MainWindowViewModelLifecycleTests
                 viewModel.AddDocument(fileName);
                 var first = viewModel.CurrentDocument;
                 Assert.IsNotNull(first);
-
-                var documentStyle = new Style();
-                var styleSelector = new DocumentLayoutItemStyleSelector { DocumentStyle = documentStyle };
-                var documentContent = new ContentControl { Content = first };
-                Assert.AreSame(documentStyle, styleSelector.SelectStyle(documentContent, documentContent));
-                var markedLinesContent = new ContentControl { Content = viewModel.MarkedLinesViewModel };
-                Assert.IsNull(styleSelector.SelectStyle(markedLinesContent, markedLinesContent));
-                var mergedContent = new ContentControl { Content = viewModel.MergedViewModel };
-                Assert.IsNull(styleSelector.SelectStyle(mergedContent, mergedContent));
 
                 var alternatePath = Path.Combine(Path.GetDirectoryName(fileName)!, ".", Path.GetFileName(fileName));
                 viewModel.AddDocument(alternatePath);
@@ -97,62 +84,9 @@ public class MainWindowViewModelLifecycleTests
         });
     }
 
-    [TestMethod]
-    [DoNotParallelize]
-    public void CycleTimeline_UpdatesBothViewsAndPersistsAllThreeStates()
+    private static MainWindowViewModel CreateViewModel()
     {
-        RunOnSta(() =>
-        {
-            var settingsPath = ApplicationSettings.SettingsFileName;
-            var originalSettings = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : null;
-            var fileName = Path.Combine(Path.GetTempPath(), $"loggrokx-{Guid.NewGuid():N}.log");
-            File.WriteAllText(fileName, "2026-01-01 00:00:00 INFO 1 Test Message");
-            try
-            {
-                File.WriteAllText(settingsPath, "Settings:\n  ViewSettings:\n    TimelineAtTop: true\n");
-                var settings = (ApplicationSettings)Activator.CreateInstance(typeof(ApplicationSettings), true)!;
-                settings.ViewSettings.TimelineAtTop = true;
-                using var viewModel = CreateViewModel(settings);
-                viewModel.AddDocument(fileName);
-                var log = viewModel.CurrentDocument!.LogViewModel;
-                var merged = viewModel.MergedViewModel;
-                Assert.AreEqual(Dock.Top, log.TimelineDock);
-                Assert.AreEqual(Dock.Top, merged.TimelineDock);
-                Assert.IsTrue(viewModel.IsTimelineVisible);
-
-                foreach (var (visible, dock) in new[]
-                {
-                    (true, Dock.Bottom), (false, Dock.Bottom), (true, Dock.Top), (true, Dock.Bottom)
-                })
-                {
-                    viewModel.CycleTimelineCommand.Execute(null);
-                    Assert.AreEqual(visible, viewModel.IsTimelineVisible);
-                    Assert.AreEqual(visible, log.IsTimelineVisible);
-                    Assert.AreEqual(visible, merged.IsTimelineVisible);
-                    Assert.AreEqual(dock, log.TimelineDock);
-                    Assert.AreEqual(dock, merged.TimelineDock);
-
-                    var saved = new ViewSettings();
-                    new ConfigurationBuilder().AddYamlFile(settingsPath, false, false).Build()
-                        .GetSection("Settings:ViewSettings").Bind(saved);
-                    Assert.AreEqual(visible, saved.TimelineVisible);
-                    Assert.AreEqual(dock == Dock.Top, saved.TimelineAtTop);
-                }
-            }
-            finally
-            {
-                File.Delete(fileName);
-                if (originalSettings != null)
-                    File.WriteAllBytes(settingsPath, originalSettings);
-                else
-                    File.Delete(settingsPath);
-            }
-        });
-    }
-
-    private static MainWindowViewModel CreateViewModel(ApplicationSettings? settings = null)
-    {
-        settings ??= ApplicationSettings.Instance();
+        var settings = ApplicationSettings.Instance();
         return new MainWindowViewModel(
             settings,
             new SearchAutocompleteCache(),

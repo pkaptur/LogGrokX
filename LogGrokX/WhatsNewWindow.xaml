@@ -3,18 +3,16 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  Title="What's new"
-                 Width="520"
+                 Width="480"
                  SizeToContent="Height"
                  Icon="pack://application:,,,/app.ico"
                  ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="None"
                  WindowCornerPreference="Round"
                  WindowStartupLocation="CenterOwner"
-                 Background="{DynamicResource ApplicationBackgroundBrush}"
-                 FontFamily="{StaticResource AppFontFamily}"
                  ResizeMode="NoResize"
                  ShowInTaskbar="False">
-    <Grid UseLayoutRounding="True">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -29,11 +27,11 @@
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 
-        <StackPanel Grid.Row="1" Margin="24,8,24,24">
+        <StackPanel Grid.Row="1" Margin="16,4,16,16">
             <StackPanel Orientation="Horizontal">
                 <ui:ImageIcon Source="pack://application:,,,/app-large.png" Width="40" Height="40" />
                 <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="20" FontWeight="SemiBold">
+                    <TextBlock FontSize="18" FontWeight="SemiBold">
                         <Run Text="Updated to LogGrokX" />
                         <Run Text="{Binding Version, Mode=OneWay}" />
                     </TextBlock>
@@ -42,9 +40,12 @@
                 </StackPanel>
             </StackPanel>
 
-            <TextBlock Margin="0,24,0,8" FontWeight="SemiBold" Text="What's new" />
+            <TextBlock Margin="0,16,0,6" FontWeight="SemiBold" Text="What's new" />
             <Border MaxHeight="280"
-                    Style="{StaticResource FluentCardStyle}">
+                    Padding="8"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <TextBlock Text="{Binding ReleaseNotes, Mode=OneWay}" TextWrapping="Wrap" />
                 </ScrollViewer>
@@ -54,8 +55,7 @@
                                 Command="{Binding OpenReleasePageCommand}"
                                 Content="Open release page" />
 
-            <ui:Button Margin="0,24,0,0"
-                       MinWidth="88"
+            <ui:Button Margin="0,16,0,0"
                        HorizontalAlignment="Right"
                        Appearance="Primary"
                        Command="{Binding CloseCommand}"

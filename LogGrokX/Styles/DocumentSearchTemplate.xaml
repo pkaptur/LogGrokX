@@ -75,16 +75,8 @@
         </Grid>
     </DataTemplate>
 
-    <Style x:Key="SearchParameterToggleButtonStyle" TargetType="ToggleButton"
-           BasedOn="{StaticResource SearchOptionToggleButtonStyle}">
-        <Setter Property="Width" Value="32" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
-        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
-    </Style>
-
     <DataTemplate x:Key="SearchParametersTemplate" DataType="search:SearchViewModel">
-        <Grid Margin="4,4">
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -99,11 +91,12 @@
             <ContentControl Grid.ColumnSpan="4"
                             Margin="0,0,0,5" />
             <ToggleButton Grid.Row="0" Grid.Column="0"
-                          Margin="0,0,4,0"
+                          Margin="0,0,2,0"
                           HorizontalContentAlignment="Center"
                           VerticalContentAlignment="Center"
+                          BorderThickness="0"
                           IsChecked="{Binding IsCaseSensitive}"
-                          Style="{StaticResource SearchParameterToggleButtonStyle}"
+                          Style="{StaticResource SearchOptionToggleButtonStyle}"
                           ToolTip="Match case">
                 <TextBlock HorizontalAlignment="Center"
                            VerticalAlignment="Center"
@@ -113,11 +106,12 @@
             </ToggleButton>
             <ToggleButton Grid.Row="0"
                           Grid.Column="1"
-                          Margin="0,0,4,0"
+                          Margin="0,0,2,0"
                           HorizontalContentAlignment="Center"
                           VerticalContentAlignment="Center"
+                          BorderThickness="0"
                           IsChecked="{Binding UseRegex}"
-                          Style="{StaticResource SearchParameterToggleButtonStyle}"
+                          Style="{StaticResource SearchOptionToggleButtonStyle}"
                           ToolTip="Use Regular Expressions">
                 <TextBlock HorizontalAlignment="Center"
                            VerticalAlignment="Center"
@@ -132,8 +126,7 @@
                                         NotifyOnValidationError=True,
                                         ValidatesOnDataErrors=True,
                                         Mode=TwoWay}"
-                     PlaceholderText="Search logs (Ctrl+F)"
-                     AutomationProperties.Name="Search logs"
+                     PlaceholderText="Search..."
                      controls:SetFocusBehavior.SetFocusRequest="{Binding SetFocusRequest}"
                      behaviors:AutoCompleteBehavior.AutoCompleteItemsSource="{Binding AutoCompleteList, Mode=OneWay}"
                      behaviors:AutoCompleteBehavior.AutoCompleteStringComparison="InvariantCultureIgnoreCase">
@@ -144,11 +137,12 @@
             <ToggleButton x:Name="SavedSearchToggleButton"
                           Grid.Row="0"
                           Grid.Column="2"
-                          Margin="0,0,6,0"
+                          Margin="0,0,2,0"
                           HorizontalContentAlignment="Center"
                           VerticalContentAlignment="Center"
-                          IsTabStop="True"
-                          Style="{StaticResource SearchParameterToggleButtonStyle}"
+                          BorderThickness="0"
+                          IsTabStop="False"
+                          Style="{StaticResource SearchOptionToggleButtonStyle}"
                           ToolTip="Saved searches">
                 <ui:SymbolIcon Symbol="Star24" FontSize="14" />
             </ToggleButton>
@@ -159,12 +153,12 @@
                    StaysOpen="False"
                    filterPopup:BindPopupBehavior.ToToggleButton="{Binding ElementName=SavedSearchToggleButton}">
                 <Border Width="320"
-                        MaxHeight="420"
+                        MaxHeight="360"
                         Background="{DynamicResource ApplicationBackgroundBrush}"
                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
-                    <Grid Margin="12">
+                    <Grid Margin="6">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -207,7 +201,7 @@
                                                 <StackPanel>
                                                     <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
                                                     <TextBlock FontStyle="Italic"
-                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                               Foreground="Gray"
                                                                Text="{Binding Pattern}" />
                                                 </StackPanel>
                                             </ui:Button>
@@ -217,7 +211,7 @@
                                                                       RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip="Edit">
-                                                <ui:SymbolIcon Symbol="Edit24" FontSize="16" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <ui:SymbolIcon Symbol="Edit24" FontSize="12" Foreground="Gray" />
                                             </ui:Button>
                                             <ui:Button Grid.Column="2"
                                                     Margin="4,0,4,0"
@@ -226,7 +220,7 @@
                                                                       RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip="Delete">
-                                                <ui:SymbolIcon Symbol="Delete24" FontSize="16" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <ui:SymbolIcon Symbol="Delete24" FontSize="12" Foreground="Gray" />
                                             </ui:Button>
                                         </Grid>
                                         <Grid Visibility="{Binding IsEditing,
@@ -251,7 +245,7 @@
                                                                       RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip="Save">
-                                                <ui:SymbolIcon Symbol="Checkmark24" FontSize="16" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <ui:SymbolIcon Symbol="Checkmark24" FontSize="12" Foreground="Gray" />
                                             </ui:Button>
                                             <ui:Button Grid.Column="2"
                                                     Margin="4,0,4,0"
@@ -260,7 +254,7 @@
                                                                       RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip="Cancel">
-                                                <ui:SymbolIcon Symbol="Dismiss24" FontSize="16" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <ui:SymbolIcon Symbol="Dismiss24" FontSize="12" Foreground="Gray" />
                                             </ui:Button>
                                         </Grid>
                                     </Grid>
@@ -277,8 +271,7 @@
                                      Text="{Binding NewSearchName,
                                                     UpdateSourceTrigger=PropertyChanged}"
                                      PlaceholderText="Name for current search" />
-                            <ui:Button Grid.Column="1"
-                                    Appearance="Primary"
+                            <Button Grid.Column="1"
                                     Command="{Binding SaveSearchCommand}"
                                     Content="Save" />
                         </Grid>
@@ -320,21 +313,19 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="*" />
                                         </Grid.RowDefinitions>
-                                        <Border Grid.Row="0" Grid.RowSpan="2" Background="Transparent" />
+                                        <Border Grid.Row="0" Grid.RowSpan="2" Background="#00FFFFFF" />
                                         <Grid Grid.Row="0" ZIndex="1">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <ui:Button Margin="6,4"
-                                                    Style="{StaticResource ToolbarButtonStyle}"
+                                            <ui:Button Margin="5"
                                                     Appearance="Transparent"
                                                     Command="{Binding AddNewSearchCommand}"
-                                                    ToolTip="New search"
                                                     IsTabStop="False">
                                                 <ui:Button.Content>
-                                                    <ui:SymbolIcon Symbol="Add24" FontSize="16" />
+                                                    <ui:SymbolIcon Symbol="Add24" FontSize="15" />
                                                 </ui:Button.Content>
                                             </ui:Button>
                                             <DocumentPaneTabPanel Name="HeaderPanel"

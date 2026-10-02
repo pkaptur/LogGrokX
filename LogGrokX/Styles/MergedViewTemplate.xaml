@@ -164,8 +164,7 @@
                 </StackPanel>
 
                 <DockPanel Grid.Row="1" LastChildFill="True">
-                    <localControls:LogMinimapControl DockPanel.Dock="{Binding TimelineDock}"
-                                                     Visibility="{Binding IsTimelineVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    <localControls:LogMinimapControl DockPanel.Dock="Bottom"
                                                      Height="30"
                                                      HorizontalAlignment="Stretch"
                                                      ClipToBounds="True"
@@ -185,15 +184,15 @@
                                                      MatchBuckets="{Binding Search.CurrentMatchBuckets}"
                                                      MatchLine="{Binding Search.CurrentMatchLine}"
                                                      MatchLines="{Binding Search.CurrentSelectedMatchLines}"
-                                                     ScrollIndicatorBrush="{DynamicResource SystemFillColorSuccessBrush}"
-                                                     MatchLineBrush="{DynamicResource AccentFillColorDefaultBrush}"
-                                                     MatchBrush="{DynamicResource SystemFillColorCautionBrush}"
-                                                     MarkerBrush="{DynamicResource SystemFillColorCriticalBrush}"
-                                                     DayBoundaryBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
+                                                     ScrollIndicatorBrush="#FF00C853"
+                                                     MatchLineBrush="#FFFF00FF"
+                                                     MatchBrush="#A0F2A900"
+                                                     MarkerBrush="#FFE81123"
+                                                     DayBoundaryBrush="#FF8E8E8E"
                                                      MinimapBackground="{DynamicResource ControlFillColorDefaultBrush}"
-                                                     SelectionBrush="{DynamicResource TimelineSelectionBrush}"
-                                                     DimBrush="{DynamicResource TimelineDimBrush}"
-                                                     HandleBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                                     SelectionBrush="#33007ACC"
+                                                     DimBrush="#40000000"
+                                                     HandleBrush="#FF007ACC"
                                                      DurationForeground="{DynamicResource TextFillColorPrimaryBrush}"
                                                      DurationBackground="Transparent"
                                                      NavigateCommand="{Binding NavigateToMarkerCommand}" />

@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                     xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
@@ -106,13 +106,6 @@
                                            BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                         <Setter Property="Padding" Value="6,1" />
                                         <Setter Property="Margin" Value="0" />
-                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
-                                        <Style.Triggers>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-                                                <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
-                                            </Trigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </ListBox.ItemContainerStyle>
                                 <ListBox.ItemTemplate>
@@ -130,24 +123,13 @@
                                                                   MinHeight="20"
                                                                   Padding="0"
                                                                   FontSize="12"
-                                                                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                                   IsChecked="{Binding IsActive}" />
                                                         <TextBlock Grid.Column="1"
                                                                    Margin="8,0,2,0"
                                                                    VerticalAlignment="Center"
                                                                    FontStyle="Italic"
-                                                                   Text="{Binding Percent}">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
+                                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                                   Text="{Binding Percent}" />
                                                     </Grid>
                                                 </DataTemplate><!--
                                                             <DataTemplate DataType="{x:Type local:ComponentViewModel}">

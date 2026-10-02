@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -204,13 +204,7 @@ namespace LogGrokX
         public Dock TimelineDock =>
             _timelinePlacementService.IsAtTop ? Dock.Top : Dock.Bottom;
 
-        public bool IsTimelineVisible => _timelinePlacementService.IsVisible;
-
-        private void OnTimelinePlacementChanged()
-        {
-            InvokePropertyChanged(nameof(TimelineDock));
-            InvokePropertyChanged(nameof(IsTimelineVisible));
-        }
+        private void OnTimelinePlacementChanged() => InvokePropertyChanged(nameof(TimelineDock));
 
         public bool GroupByThread => _threadGroupingService.IsEnabled;
 

@@ -29,7 +29,6 @@ namespace LogGrokX.MergedView
         private readonly ObservableCollection<DocumentViewModel> _documents;
         private readonly ApplicationSettings _applicationSettings;
         private readonly ThreadGroupingService _threadGroupingService;
-        private readonly TimelinePlacementService _timelinePlacementService;
         private readonly HashSet<DocumentViewModel> _subscribed = new();
         private readonly List<MergedDocumentItem> _selectedSources = new();
         private readonly List<MergedLineRef> _mergedBuffer = new();
@@ -61,16 +60,13 @@ namespace LogGrokX.MergedView
             SearchAutocompleteCache searchAutocompleteCache,
             SavedSearchPatternStore savedSearchPatternStore,
             ApplicationSettings applicationSettings,
-            ThreadGroupingService threadGroupingService,
-            TimelinePlacementService timelinePlacementService)
+            ThreadGroupingService threadGroupingService)
         {
             _documents = documents;
             _applicationSettings = applicationSettings;
             _threadGroupingService = threadGroupingService;
-            _timelinePlacementService = timelinePlacementService;
             _colorSettings = new ColorRules(applicationSettings.ColorSettings);
             _threadGroupingService.Changed += OnThreadGroupingChanged;
-            _timelinePlacementService.Changed += OnTimelinePlacementChanged;
 
             Search = new SearchViewModel(
                 pattern => new MergedSearchDocumentViewModel(this, pattern),
@@ -126,16 +122,6 @@ namespace LogGrokX.MergedView
         }
 
         public string Title => "Merged files";
-
-        public Dock TimelineDock => _timelinePlacementService.IsAtTop ? Dock.Top : Dock.Bottom;
-
-        public bool IsTimelineVisible => _timelinePlacementService.IsVisible;
-
-        private void OnTimelinePlacementChanged()
-        {
-            InvokePropertyChanged(nameof(TimelineDock));
-            InvokePropertyChanged(nameof(IsTimelineVisible));
-        }
 
         public SearchViewModel Search { get; }
 
@@ -317,7 +303,6 @@ namespace LogGrokX.MergedView
             _rebuildTimer.Stop();
             _documents.CollectionChanged -= OnDocumentsChanged;
             _threadGroupingService.Changed -= OnThreadGroupingChanged;
-            _timelinePlacementService.Changed -= OnTimelinePlacementChanged;
             TimeRangeFilter.Changed -= ScheduleRebuild;
             _filterSettings.ExclusionsChanged -= OnFilterChanged;
             Search.CurrentLineChanged -= NavigateToCentered;
