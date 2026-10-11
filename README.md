@@ -11,6 +11,59 @@ log lines with configurable regular expressions, builds in-memory indexes for
 columns and fields, and lets you search, filter, colorize and mark lines while
 remaining responsive even on multi-gigabyte files.
 
+## Installation
+
+LogGrokX is **Windows-only** (Windows 10 or later) and is published for **x64**
+and **x86**. Download the latest build from the
+[Releases page](https://github.com/zhenyatnk/LogGrokX/releases/latest).
+
+### Installer (recommended)
+
+| Windows   | File                                |
+| --------- | ----------------------------------- |
+| 64-bit    | `LogGrokX-<version>-x64-setup.exe`  |
+| 32-bit    | `LogGrokX-<version>-x86-setup.exe`  |
+
+The installer is **self-contained** — no .NET runtime needs to be installed — and
+offers:
+
+- a Start Menu shortcut and an optional desktop shortcut;
+- an optional **.log** file association;
+- **Install updates automatically** (checked downloads and installs new versions
+  silently on exit; unchecked only notifies — see
+  [Automatic updates](./FEATURES.md#-automatic-updates));
+- a standard uninstaller in **Add/Remove Programs**.
+
+Setup installs **per-user** by default; choose to install for all users to place
+LogGrokX under `Program Files` (this asks for elevation). Upgrading keeps your
+existing `appsettings.yaml`.
+
+### Portable
+
+No installation needed — extract the archive and run `LogGrokX.exe`.
+
+| Variant                              | 64-bit                                        | 32-bit                                        | Needs .NET runtime |
+| ------------------------------------ | --------------------------------------------- | --------------------------------------------- | ------------------ |
+| Self-contained (recommended)         | `LogGrokX-<version>-win-x64-selfcontained.zip` | `LogGrokX-<version>-win-x86-selfcontained.zip` | no                 |
+| Framework-dependent                  | `LogGrokX-<version>-win-x64-portable.zip`      | `LogGrokX-<version>-win-x86-portable.zip`      | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) |
+
+Portable builds cannot update themselves: the **Update** button opens the release
+page instead of installing silently.
+
+### Verify the download
+
+Every release ships `SHA256SUMS.txt`. Compare the hash of the file you downloaded:
+
+```powershell
+Get-FileHash .\LogGrokX-<version>-x64-setup.exe -Algorithm SHA256
+```
+
+### Open a log from the command line
+
+```powershell
+LogGrokX.exe C:\logs\app.log C:\logs\worker.log
+```
+
 ## Features
 
 - **Large file support** — files are streamed and indexed in the background
@@ -135,8 +188,17 @@ snippets for every feature live in [FEATURES.md](./FEATURES.md):
 
 ## Requirements
 
-- Windows
-- .NET SDK 10.0.100 or later (see `global.json`)
+### To run
+
+- Windows 10 or later (x64 or x86).
+- The **installer** and the **self-contained** portable ZIPs bundle the .NET
+  runtime, so nothing else is required.
+- The **framework-dependent** portable ZIPs need the
+  [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+### To build from source
+
+- .NET SDK 10.0.100 or later (pinned by `global.json`)
 - Visual Studio 2022+ or the .NET CLI
 
 ## Building
