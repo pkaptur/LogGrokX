@@ -4,7 +4,6 @@
 [![Run Unit tests](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/run-tests.yml)
 [![Upload Binaries](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/build_upload.yml)
 [![Benchmarks](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/benchmarks.yml)
-[![Release](https://github.com/zhenyatnk/LogGrokX/actions/workflows/release.yml/badge.svg)](https://github.com/zhenyatnk/LogGrokX/actions/workflows/release.yml)
 
 A fast WPF log viewer for very large log files. LogGrokX parses structured
 log lines with configurable regular expressions, builds in-memory indexes for
