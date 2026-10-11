@@ -27,6 +27,9 @@ namespace LogGrokX
         public LogFormat[] LogFormats { get; set; } =
             Array.Empty<LogFormat>();
 
+        public ValueMappingList[] ValueMappings { get; set; } =
+            Array.Empty<ValueMappingList>();
+
         private readonly Dictionary<string, ColumnSettings> _columnSettingsMap = new();
         public ColumnSettings GetColumnSettings(string logFormat)
         {
@@ -93,6 +96,12 @@ namespace LogGrokX
             BinaryDetectionOptions.Current = BinaryDetectionOptions.FromSettings(ViewSettings);
         }
 
+        public void SetValueMappings(ValueMappingList[] valueMappings)
+        {
+            ValueMappings = valueMappings;
+            ValueMapper.Current = new ValueMapper(valueMappings);
+        }
+
         private static void SetViewSetting(bool current, bool value, Action<bool> set, string key)
         {
             if (current == value)
@@ -153,6 +162,7 @@ namespace LogGrokX
             var configuration = builder.Build();
             configuration.GetSection("Settings").Bind(settings);
             BinaryDetectionOptions.Current = BinaryDetectionOptions.FromSettings(settings.ViewSettings);
+            ValueMapper.Current = new ValueMapper(settings.ValueMappings);
 
             ChangeToken.OnChange(() => configuration.GetReloadToken(), () =>
             {
@@ -165,6 +175,7 @@ namespace LogGrokX
                 settings.ViewSettings.DetectBase64 = newSettings.ViewSettings.DetectBase64;
                 settings.ViewSettings.DetectHex = newSettings.ViewSettings.DetectHex;
                 BinaryDetectionOptions.Current = BinaryDetectionOptions.FromSettings(settings.ViewSettings);
+                settings.SetValueMappings(newSettings.ValueMappings);
             });
 
             return settings;
