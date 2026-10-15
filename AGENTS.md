@@ -55,7 +55,7 @@ loading (`LoaderBenchmark`) and the merge core (`MergeBenchmark`:
 
 The UI layer uses **WPF-UI 4.3.0** (Fluent controls/theming) and
 **AvalonDock 5** for docking. Branding/window title is **LogGrokX** plus the
-build version: `BuildInfo.Version` (release `-p:Version`, default `2.1`).
+build version: `BuildInfo.Version` (release `-p:Version`, default `0.0`).
 JSON folding lives in `Controls/TextRender` (`TextView`,
 `TextViewSharedFoldingState`, `CollapsibleRegionsMachine`, `FoldingManager`).
 JSON and XML fragments are detected by `TextOperations.GetStructuredRanges`
@@ -175,7 +175,8 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
   release page. The mode is `ViewSettings.UpdateMode` (`disabled`/`check`/`install`,
   Settings -> View); `install` downloads without a dialog. The installer task
   `autoinstallupdates` writes `install`/`check` to `appsettings.yaml` except during
-  `/AUTOUPDATE=1` runs. Local builds default to `2.1`, so they never prompt.
+  `/AUTOUPDATE=1` runs. Local builds default to `0.0`, so they are older than
+  any release and prompt when updates are enabled.
   When an installer is downloaded, its release notes are saved to
   `%LOCALAPPDATA%\LogGrokX\Data\pending-update.json`; on the next launch
   `App.OnStartup` calls `UpdateCheckService.TakePendingReleaseForCurrentVersion`,
@@ -257,14 +258,22 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
   into `BinaryDetectionOptions` (`FromSettings`) and published as the static
   `BinaryDetectionOptions.Current` by `ApplicationSettings.Load`, its hot reload
   and `SetBinaryDetection` (called from Settings -> View on save).
-  `LinePartViewModel` snapshots `Current` in its constructor (after creating the
-  `TextModel`, which loads the settings) unless `detection` is passed
-  explicitly; `detectBase64: false` forces `None`. Disabled Base64 kinds are
+  `LinePartViewModel` snapshots `Current` in its constructor unless `detection`
+  is passed explicitly; `detectBase64: false` forces `None`. Parts that captured
+  `Current` follow changes live: every set of `BinaryDetectionOptions.Current`
+  bumps `CurrentVersion` and raises a weak static `CurrentChanged` (the part
+  keeps the handler in `_onDisplaySettingsChanged` — a `WeakReference` to an
+  unrooted delegate is collected, and visible rows then update only after
+  re-virtualization), and the part
+  refreshes its detection caches, decoded models and `TextModel`, re-raising
+  `IsPem` / `IsBase64` / `IsHex` / `IsDecoded` / `TextModel` (via the event,
+  marshalled to the UI dispatcher, or lazily on next access).
+  `BaseLogLineViewModel` forwards part `IsPem` / `IsBase64` / `IsHex` changes to
+  the row's `IsDecodable`. Disabled Base64 kinds are
   masked out of `Base64Detector.Detect` (`Base64Kinds`), and HEX detection is
   skipped, so `IsPem` / `IsBase64` / `IsHex` and therefore `BIN` and the context
-  menu items stay hidden. Parts already created keep their snapshot; the change
-  reaches every line after reopening the log. Covered by
-  `BinaryDetectionOptionsTests`.
+  menu items stay hidden. Covered by
+  `BinaryDetectionOptionsTests` and `LiveSettingsRefreshTests`.
 - **Value mappings** (#58): `Settings.ValueMappings` (`ValueMappingList[]`:
   `Name`, `Enabled`, `IgnoreCase`, `Fields`, `Items` of `Value`/`Mapping`) is
   compiled into `LogGrokX.Data/ValueMapper` and published as the static
@@ -278,18 +287,23 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
   `SearchDocumentViewModel`, `MergedDocumentItem.FieldNames`). Values match as
   whole tokens (`(?<!\w)`/`(?!\w)` only at word-character edges); the longest
   value wins, then the first list. `LineViewModel` gets one mapper per field and
-  passes it to `LinePartViewModel`, which builds its `TextModel` (and every
+  passes it to `LinePartViewModel` (product call sites pass a
+  `valueMappersResolver: () => ValueMapper.Current.ForFields(...)`, so existing
+  rows follow mapping changes; explicit `valueMappers` / `valueMapper` stay
+  fixed), which builds its `TextModel` (and every
   decoded model, after Base64/HEX) from `ValueMappingText.Apply`, so the display
   and "Copy" show `value(mapping)` while `OriginalText`, search, filters and
-  indexes keep the raw value. `ValueMappingText` maps JSON string values (inside
+  indexes keep the raw value. `ValueMapper.Current` bumps `CurrentVersion` and
+  raises a weak static `CurrentChanged` on every set; resolver-backed parts and
+  lines refresh their `TextModel` (decoded models are rebuilt lazily) so a saved
+  change reaches every open document without reopening the log. `ValueMappingText` maps JSON string values (inside
   the quotes, `value(mapping)`) and JSON numbers (as a trailing `5 /*mapping*/`
   comment, so the number stays a number); property names are not mapped. JSON
   comments are tolerated by `TextOperations.IsValidJson` (`JsonCommentHandling.Skip`)
   and preserved by `FormatJsonWithComments`, so commented JSON is still formatted
   and folded. XML text/attribute values/CDATA are mapped with the mapping escaped,
   and the fragment is kept unchanged if it is no longer the same JSON/XML
-  (`TextOperations.GetStructuredRanges`). Rows already created keep their
-  snapshot; the change reaches every line after reopening the log. JSON
+  (`TextOperations.GetStructuredRanges`). JSON
   import/export is `ValueMappingJson` (object, array or a plain value->mapping
   object). The YAML block is written by `SettingsYamlRenderer.RenderValueMappings`;
   `YamlSettingsFile.EnsureKey` adds a missing `ValueMappings:` key to older
