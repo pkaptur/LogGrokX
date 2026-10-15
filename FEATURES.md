@@ -7,8 +7,12 @@ and shows the relevant configuration or core API with a ready-to-adapt snippet.
 > All screenshots were captured from the running application using **generated
 > demo logs** (`demo-app.log`, `demo-worker.log`, `demo-xor.log`), not real
 > product traces. The demo files live in [`assets/demo`](./assets/demo) and can
-> be regenerated from the scenario script. Each image is 1920×1080 (Full HD);
-> detail views are cropped and highlight the relevant area.
+> be regenerated from the scenario script. Most images are 1920×1080 (Full HD);
+> settings windows and detail views use a tighter crop for readability. Older
+> feature screenshots remain where the workflow is unchanged; the overview,
+> language and profile screenshots show the current interface.
+
+![Current interface with the profile selector and title-bar tools](assets/images/feature-overview.png)
 
 ## Table of contents
 
@@ -33,6 +37,8 @@ and shows the relevant configuration or core API with a ready-to-adapt snippet.
 - [📑 Files and documents](#-files-and-documents)
 - [🧭 Grid behaviour](#-grid-behaviour)
 - [⚙️ Settings](#️-settings)
+- [🌐 Interface languages](#-interface-languages)
+- [🗂️ Configuration profiles](#️-configuration-profiles)
 - [🌗 Light and dark themes](#-light-and-dark-themes)
 - [🩺 Crash dumps](#-crash-dumps)
 - [🛟 Support window](#-support-window)
@@ -716,8 +722,9 @@ navigation comfortable:
 
 ## ⚙️ Settings
 
-**Business value.** Everything tunable lives in one place and is applied without
-restarting the app. The same values can be edited by hand in `appsettings.yaml`,
+**Business value.** Everything tunable lives in one place. Most changes apply
+without restarting the app; changing the interface language requires a restart.
+The same values can be edited by hand in `appsettings.yaml`,
 which is watched and hot-reloaded.
 
 ![Settings — View tab](assets/images/feature-settings-view.png)
@@ -726,9 +733,9 @@ The Settings window is organised into tabs:
 
 | Tab | Contents |
 | --- | --- |
-| **View** | Text size, thread grouping and separators, timeline placement, merged view, binary detection, big lines, update mode. |
-| **Colors** | Foreground/background color rules. |
-| **Log formats** | The regular expressions that describe each log layout, their indexed fields, transformations and XOR mask. |
+| **View** | Interface language, text size, thread grouping and separators, timeline placement and visibility, merged view, binary detection, big lines, update mode. |
+| **Profiles → Colors** | Named profiles and their foreground/background color rules. |
+| **Profiles → Log formats** | Each profile's regular expressions, indexed fields, transformations, time parsing and XOR mask. |
 | **Value mappings** | The mapping lists and their JSON import/export. |
 | **Debug** | Crash dumps and diagnostics. |
 
@@ -738,6 +745,93 @@ The Settings window is organised into tabs:
 
 Open it from the **settings** button in the title bar; changes take effect after
 **Save** (a few options only apply to logs opened afterwards).
+
+The title bar groups file opening, text zoom, timeline placement, thread
+grouping, merged view, theme, support and settings tools beside the profile
+selector. Hover an icon for its tooltip. The timeline button cycles through
+top, bottom and hidden; search remains available with `Ctrl+F`, `F3` and
+`Shift+F3`.
+
+## 🌐 Interface languages
+
+**Business value.** Teams can use the same viewer in their preferred language
+while sharing log files and configuration without translating their contents.
+The interface, settings and installer support **English, Russian, German,
+French, Spanish, Japanese, Polish and Brazilian Portuguese**.
+
+![Language choices in Settings → View](assets/images/feature-languages.png)
+
+1. Open **Settings → View → Language**.
+2. Select a language, or **System language** to follow Windows.
+3. Click **Save**, then restart LogGrokX.
+
+![The interface and settings displayed in Russian](assets/images/feature-language-russian.png)
+
+A fresh installation starts in the language selected in Setup. Portable builds
+follow the system language by default, falling back to English for an unsupported
+language. The saved choice survives upgrades. Log text, field names and column
+headers, profile names and YAML keys keep their original text.
+
+```yaml
+Settings:
+  ViewSettings:
+    Language: system  # system | en | ru | de | fr | es | ja | pl | pt-BR
+```
+
+## 🗂️ Configuration profiles
+
+**Business value.** Switch between products or log families without replacing
+the whole configuration. Each named profile holds its own **log formats** and
+**color rules**. View options, language, binary detection, value mappings,
+updates and diagnostics are shared across profiles.
+
+![Profile management and color rules in Settings](assets/images/feature-settings-colors.png)
+
+1. Open **Settings → Profiles** and select a profile.
+2. Use **New** for an empty profile or **Copy** to duplicate the selected one;
+   enter a unique, non-empty name. **Remove** deletes a profile, but at least
+   one must remain.
+3. Edit its **Colors** and **Log formats** tabs, then click **Save**. The profile
+   selected in Settings becomes active when saved.
+
+![Log formats belong to the selected profile](assets/images/feature-log-formats.png)
+
+For everyday switching, use the **profile selector in the main title bar**.
+The selection takes effect immediately, is saved, and applies to **all open
+documents** and subsequently opened files. Changing formats or colors rereads
+the open logs and preserves marked lines; renaming a profile with unchanged
+configuration does not trigger a reparse. If a profile cannot be applied, the
+last successfully applied configuration stays in use.
+
+Fresh configurations include **Kaspersky** (the original formats and colors),
+**Venn** (its own structured format and colors) and **Plain text** (whole-line
+text without color rules). Upgrades preserve the existing configuration, so
+these bundled profiles are not automatically added to an older installation.
+
+```yaml
+Settings:
+  SelectedProfile: Application
+  Profiles:
+    - Name: Application
+      InheritLegacySettings: false
+      ColorSettings:
+        Rules:
+          - RegexString: '\bERROR\b'
+            ForegroundColor: Red
+      LogFormats:
+        - Regex: '^(?<Time>\d{4}-\d{2}-\d{2}\s[^\s]+)\s+(?<Level>[^\s]+)\s+(?<Thread>[^\s]+)\s+(?<Component>[^\s]+)\s+(?<Message>.*)'
+          IndexedFields: [Level, Thread, Component]
+    - Name: Plain text
+      InheritLegacySettings: false
+      ColorSettings:
+        Rules: []
+      LogFormats: []
+```
+
+Older configurations with only `Settings.ColorSettings` and `Settings.LogFormats`
+appear as **Default**. For hand-written profiles, missing sections inherit these
+legacy settings unless `InheritLegacySettings: false` is set; explicit empty
+lists stay empty. Profiles saved through Settings are self-contained.
 
 ## 🌗 Light and dark themes
 
