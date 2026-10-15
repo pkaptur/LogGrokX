@@ -104,8 +104,7 @@ LogGrokX.exe C:\logs\app.log C:\logs\worker.log
   their folding.
 - **Color rules** — highlight matching lines and text with rules in
   `appsettings.yaml`; colors adapt to the active theme.
-- **Marked lines** — mark interesting lines; they are highlighted across the full
-  row in the grid (and merged view) and can be browsed in a dedicated view.
+- **Marked lines** — mark interesting lines and browse them in a dedicated view.
 - **Text zoom** — scale log text with `Ctrl` + mouse wheel or `Ctrl` + `+`/`-`,
   and reset with `Ctrl` + `0`; the size is persisted in `appsettings.yaml`.
 - **Centered navigation** — jumping to a search hit (including `F3`) or a marked
@@ -162,7 +161,7 @@ LogGrokX.exe C:\logs\app.log C:\logs\worker.log
   Select a language in Settings → View, save and restart.
 - **Configuration profiles** — named sets of log formats and color rules,
   managed in Settings → Profiles and switched from the title bar for all open
-  logs. Fresh configurations include Classic, Venn and Plain text profiles.
+  logs. Fresh configurations include Kaspersky, Venn and Plain text profiles.
 - **Merged files view** — combine several opened logs into one time-ordered grid.
   Columns are aligned across different log formats, rows are tinted per source,
   and search, time-range filtering, thread grouping, JSON folding and marking

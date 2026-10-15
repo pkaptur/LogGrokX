@@ -306,11 +306,7 @@ escaped (`\"`, `\n`, `&lt;`, `&amp;`, ...), so the payload stays valid and keeps
 its JSON/XML folding. HEX that decodes to JSON or XML is formatted as well.
 Binary payloads are not decoded to text, but a HEX-encoded X.509 certificate,
 SubjectPublicKeyInfo or CryptoAPI `PUBLICKEYBLOB` is recognized and shown as a
-key description (like the Base64 path). HEX that decodes to a **PEM** block is
-unfolded further — the certificate summary (or text / hex dump) is shown instead
-of the raw PEM text, also inside JSON strings and XML. When the whole JSON string
-is such a certificate / key, it is replaced by a JSON object with one property
-per field (see [Base64 and PEM decoding](#-base64-and-pem-decoding)). "Copy" copies
+key description (like the Base64 path). "Copy" copies
 the value as displayed; "Copy as native" keeps the original HEX.
 
 ## 🎨 Color rules
@@ -352,11 +348,6 @@ Marked lines are browsed from the dedicated "Marked lines" view; jumping to a
 marked line centers the target row in the grid (see
 [Centered navigation](#-centered-navigation)), and the marks also appear on the
 timeline strip.
-
-Marked rows are highlighted directly in the grids too: the whole row gets a soft
-attention-colored background (`SystemFillColorAttentionBrush`, 20 % opacity) in
-both the single-log grid and the merged view, so a marked line stands out while
-scrolling without opening the dedicated view.
 
 ## 🔠 Text zoom
 
@@ -523,32 +514,15 @@ are formatted and folded). Values are unescaped first — JSON escapes such as
 `\u002B`, `\/`, `\n` and XML entities such as `&#xA;` or `&amp;` — and the
 decoded value is written back so the document stays valid and keeps folding:
 
-- JSON: a value that decodes to JSON becomes a nested object/array; a PEM
-  block, an X.509 certificate or a public key description becomes a JSON
-  object with one property per field (`Type`, `Subject`, `Issuer`, `Not after`,
-  `Thumbprint (SHA-1)`, …; subject alternative names and the RSA modulus are
-  arrays, several PEM blocks become an array of objects, and a PEM body that is
-  not a certificate goes to `Content`); any other multi-line result becomes an
-  array of lines, anything else stays an escaped string; keys are never decoded;
+- JSON: a value that decodes to JSON becomes a nested object/array, a
+  multi-line result (e.g. a PEM certificate summary) becomes an array of lines,
+  anything else stays an escaped string; keys are never decoded;
 - XML: element text, attribute values and CDATA are decoded and re-escaped
   (`&lt;`, `&amp;`, `&quot;` …).
-
-When a Base64 value itself decodes to a **PEM** block (a PEM certificate stored
-Base64-encoded), the PEM is unfolded as well: instead of the raw PEM text the
-same certificate summary / text / hex dump is shown, in plain text and inside
-JSON/XML values alike. Such a cell reports both the PEM and the Base64 kind, so
-the `BIN` toggle and either **Decode …** menu item reveal the summary.
 
 ```text
 {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInNlciI6ImVtcHR5In0","n":1}
 → {"token":{"alg":"HS256","typ":"JWT","ser":"empty"},"n":1}
-
-{"certificate":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM...","id":7}
-→ {"certificate":{"Type":"CERTIFICATE","Subject":"CN=loggrokx.test, O=LogGrokX",
-   "Issuer":"CN=loggrokx.test, O=LogGrokX","Serial number":"00F1A0D918B23B6CFE",
-   "Not before":"2026-01-02 03:04:05 UTC","Not after":"2027-01-02 03:04:05 UTC",
-   "Thumbprint (SHA-1)":"DACF47B0…","Signature algorithm":"sha256RSA",
-   "Public key":"RSA 2048 bits"},"id":7}
 ```
 
 Both the standard (`+/`) and URL-safe (`-_`) alphabets are accepted, with or
@@ -570,8 +544,8 @@ detection** it can be switched off completely (**Detect binary data (BIN)**) or
 per kind: **PEM blocks, certificates and keys** (PEM blocks plus Base64 DER
 certificates, public keys and CryptoAPI key blobs), **Base64 text** and **HEX**.
 A disabled kind is not detected, so it does not show the `BIN` toggle or its
-**Decode …** context menu item. The choice is applied to every open document
-immediately after saving.
+**Decode …** context menu item. The choice is applied to lines shown after
+saving; reopen the log to apply it to every line.
 
 ```yaml
   ViewSettings:
@@ -618,7 +592,7 @@ is left unchanged, so folding keeps working. JSON comments written by mappings
 are tolerated from `JsonCommentHandling.Skip` and preserved when the fragment is
 formatted and folded. Mappings change only what is displayed (and copied):
 search, filters, color rules and indexes work on the original values. Changes
-apply to every open document immediately after saving.
+apply to lines shown after saving; reopen the log to apply them to every line.
 
 ```yaml
   ValueMappings:
@@ -745,10 +719,6 @@ navigation comfortable:
 - **Centered, keyboard-driven navigation** — arrow keys move the current line,
   `F3`/`Shift+F3` step through search hits, all centering the target row (see
   [Centered navigation](#-centered-navigation)).
-- **Row selection** — selected rows are filled with the theme accent color
-  (no border), and the text selection inside a cell uses the accent as well.
-- **Seamless rows** — adjacent rows tile without gaps, so the grid reads as a
-  continuous surface instead of a striped one.
 
 ## ⚙️ Settings
 
@@ -795,7 +765,7 @@ French, Spanish, Japanese, Polish and Brazilian Portuguese**.
 2. Select a language, or **System language** to follow Windows.
 3. Click **Save**, then restart LogGrokX.
 
-![Settings displayed in Russian](assets/images/feature-language-russian.png)
+![The interface and settings displayed in Russian](assets/images/feature-language-russian.png)
 
 A fresh installation starts in the language selected in Setup. Portable builds
 follow the system language by default, falling back to English for an unsupported
@@ -815,7 +785,7 @@ the whole configuration. Each named profile holds its own **log formats** and
 **color rules**. View options, language, binary detection, value mappings,
 updates and diagnostics are shared across profiles.
 
-![Profile selector and Classic color rules in Settings → Profiles (Russian interface)](assets/images/feature-profiles.png)
+![Profile management and color rules in Settings](assets/images/feature-settings-colors.png)
 
 1. Open **Settings → Profiles** and select a profile.
 2. Use **New** for an empty profile or **Copy** to duplicate the selected one;
@@ -824,6 +794,8 @@ updates and diagnostics are shared across profiles.
 3. Edit its **Colors** and **Log formats** tabs, then click **Save**. The profile
    selected in Settings becomes active when saved.
 
+![Log formats belong to the selected profile](assets/images/feature-log-formats.png)
+
 For everyday switching, use the **profile selector in the main title bar**.
 The selection takes effect immediately, is saved, and applies to **all open
 documents** and subsequently opened files. Changing formats or colors rereads
@@ -831,7 +803,7 @@ the open logs and preserves marked lines; renaming a profile with unchanged
 configuration does not trigger a reparse. If a profile cannot be applied, the
 last successfully applied configuration stays in use.
 
-Fresh configurations include **Classic** (the original formats and colors),
+Fresh configurations include **Kaspersky** (the original formats and colors),
 **Venn** (its own structured format and colors) and **Plain text** (whole-line
 text without color rules). Upgrades preserve the existing configuration, so
 these bundled profiles are not automatically added to an older installation.
