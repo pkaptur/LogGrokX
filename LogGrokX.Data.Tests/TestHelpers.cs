@@ -75,7 +75,7 @@ internal static class TestHelpers
         var indexer = new Indexer();
         var stringPool = new StringPool();
         var timeIndex = new TimeIndex();
-        var parsedBufferConsumer = new ParsedBufferConsumer(lineIndex, indexer, meta, stringPool);
+        using var parsedBufferConsumer = new ParsedBufferConsumer(lineIndex, indexer, meta, stringPool);
         var indexParser = new RegexBasedLineParser(meta, true);
         var lineProcessor = new LineProcessor(logFile, meta, indexParser, parsedBufferConsumer, stringPool, timeIndex);
         var loaderImpl = new LoaderImpl(bufferSize, lineProcessor);
