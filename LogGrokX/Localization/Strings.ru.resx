@@ -654,4 +654,10 @@
   <data xml:space="preserve" name="Unknown">
     <value>неизвестно</value>
   </data>
+  <data xml:space="preserve" name="IndexedFieldUnknown">
+    <value>Поле «{0}» из IndexedFields отсутствует в regex. Доступные поля: {1}.</value>
+  </data>
+  <data xml:space="preserve" name="LogFormatError">
+    <value>Профиль «{0}», формат №{1}: {2}</value>
+  </data>
 </root>

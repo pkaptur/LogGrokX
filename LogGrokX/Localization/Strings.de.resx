@@ -654,4 +654,10 @@
   <data xml:space="preserve" name="Unknown">
     <value>unbekannt</value>
   </data>
+  <data xml:space="preserve" name="IndexedFieldUnknown">
+    <value>Das indizierte Feld „{0}“ entspricht keiner Gruppe im regulären Ausdruck. Verfügbare Felder: {1}.</value>
+  </data>
+  <data xml:space="preserve" name="LogFormatError">
+    <value>Profil „{0}“, Protokollformat {1}: {2}</value>
+  </data>
 </root>

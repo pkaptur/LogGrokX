@@ -185,6 +185,68 @@ public class ProfileSettingsTests
     }
 
     [TestMethod]
+    [DataRow("Levl")]
+    [DataRow("level")]
+    public void UnknownIndexedFieldPreventsSaveWithoutChangingSettings(string field)
+    {
+        const string original = "Settings:\n  LogFormats:\n    - Regex: ^(?<Message>.*)\n";
+        File.WriteAllText(_path, original);
+        var settings = ApplicationSettings.LoadFromFile(_path);
+        var editor = CreateEditor(settings);
+        var activeProfile = editor.SelectedProfile;
+        editor.AddProfileCommand.Execute(null);
+        editor.SelectedProfile.Name = "Production";
+        var format = new LogFormatViewModel
+        {
+            Regex = @"^(?<Level>[A-Z]+) (?<Message>.*)$",
+            IndexedFields = field
+        };
+        editor.LogFormats.Add(new LogFormatViewModel { Regex = "^(?<Text>.*)$" });
+        editor.LogFormats.Add(format);
+        editor.SelectedProfile = activeProfile;
+
+        Assert.IsFalse(format.IsValid);
+        Assert.IsFalse(editor.Save());
+        StringAssert.Contains(editor.ValidationMessage, "Production");
+        StringAssert.Contains(editor.ValidationMessage, "2");
+        StringAssert.Contains(editor.ValidationMessage, field);
+        StringAssert.Contains(editor.ValidationMessage, "Level");
+        Assert.AreEqual(original, File.ReadAllText(_path));
+        Assert.AreEqual(1, settings.GetProfiles().Count);
+
+        format.IndexedFields = "Level";
+        Assert.IsTrue(format.IsValid);
+        Assert.IsTrue(editor.Save(), editor.ValidationMessage);
+    }
+
+    [TestMethod]
+    public void EditingIndexedFieldsRefreshesValidation()
+    {
+        var format = new LogFormatViewModel { Regex = "^(?<Level>.*)$", IndexedFields = "Level" };
+        var changes = new System.Collections.Generic.List<string>();
+        format.PropertyChanged += (_, args) => changes.Add(args.PropertyName!);
+
+        format.IndexedFields = "Levl";
+
+        Assert.IsFalse(format.IsValid);
+        CollectionAssert.Contains(changes, nameof(LogFormatViewModel.IsValid));
+        CollectionAssert.Contains(changes, "ValidationMessage");
+    }
+
+    [TestMethod]
+    public void RenamingRegexGroupRefreshesValidation()
+    {
+        var format = new LogFormatViewModel { Regex = "^(?<Level>.*)$", IndexedFields = "Level" };
+        var changes = new System.Collections.Generic.List<string>();
+        format.PropertyChanged += (_, args) => changes.Add(args.PropertyName!);
+
+        format.Regex = "^(?<Severity>.*)$";
+
+        Assert.IsFalse(format.IsValid);
+        CollectionAssert.Contains(changes, "ValidationMessage");
+    }
+
+    [TestMethod]
     public void RemovingLastProfileKeepsOneProfile()
     {
         var editor = CreateEditor(new ApplicationSettings(_path));
@@ -204,6 +266,18 @@ public class ProfileSettingsTests
         Assert.IsTrue(editor.Save(), editor.ValidationMessage);
         StringAssert.Contains(File.ReadAllText(_path), "First # name comment");
         StringAssert.Contains(File.ReadAllText(_path), "# format comment");
+    }
+
+    [TestMethod]
+    public void AllDefaultProfileFormatsAreValid()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            "..", "..", "..", "..", "LogGrokX", "appsettings.yaml"));
+        foreach (var profile in ApplicationSettings.LoadFromFile(path).GetProfiles())
+        {
+            foreach (var format in profile.LogFormats!)
+                Assert.IsTrue(format.IsCorrect(), $"Profile '{profile.Name}': {format.Regex}");
+        }
     }
 
     [TestMethod]
