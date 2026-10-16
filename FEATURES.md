@@ -785,7 +785,7 @@ the whole configuration. Each named profile holds its own **log formats** and
 **color rules**. View options, language, binary detection, value mappings,
 updates and diagnostics are shared across profiles.
 
-![Profile management and color rules in Settings](assets/images/feature-settings-colors.png)
+![Profile selector and Venn color rules in Settings → Profiles (Russian interface)](assets/images/feature-profiles.png)
 
 1. Open **Settings → Profiles** and select a profile.
 2. Use **New** for an empty profile or **Copy** to duplicate the selected one;
@@ -793,8 +793,6 @@ updates and diagnostics are shared across profiles.
    one must remain.
 3. Edit its **Colors** and **Log formats** tabs, then click **Save**. The profile
    selected in Settings becomes active when saved.
-
-![Log formats belong to the selected profile](assets/images/feature-log-formats.png)
 
 For everyday switching, use the **profile selector in the main title bar**.
 The selection takes effect immediately, is saved, and applies to **all open
