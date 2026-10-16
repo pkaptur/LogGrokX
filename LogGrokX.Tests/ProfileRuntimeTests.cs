@@ -20,6 +20,45 @@ namespace LogGrokX.Tests;
 public class ProfileRuntimeTests
 {
     [TestMethod]
+    public void InvalidIndexedFieldFromYamlPreventsOpeningDocument()
+    {
+        RunOnSta(() =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), $"loggrokx-invalid-format-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "sample.log");
+            var settingsPath = Path.Combine(directory, "appsettings.yaml");
+            using var diagnostics = new StringWriter();
+            using var listener = new TextWriterTraceListener(diagnostics);
+            Trace.Listeners.Add(listener);
+            try
+            {
+                File.WriteAllText(path, "INFO hello\n");
+                File.WriteAllText(settingsPath,
+                    "Settings:\n  Profiles:\n    - Name: Broken\n      LogFormats:\n" +
+                    "        - Regex: '^(?<Level>[A-Z]+) (?<Message>.*)$'\n          IndexedFields:\n            - Levl\n");
+                var settings = ApplicationSettings.LoadFromFile(settingsPath);
+                using var main = CreateMain(settings);
+
+                main.AddDocument(path);
+
+                Assert.AreEqual(0, main.Documents.Count);
+                Assert.IsNull(main.CurrentDocument);
+                StringAssert.Contains(diagnostics.ToString(), "Broken");
+                StringAssert.Contains(diagnostics.ToString(), "Levl");
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+                File.Delete(path);
+                File.Delete(settingsPath);
+                Directory.Delete(directory);
+            }
+        });
+    }
+
+    [TestMethod]
     public void VennProfileGroupsConsecutiveLinesByThreadInBothViews()
     {
         RunOnSta(() =>

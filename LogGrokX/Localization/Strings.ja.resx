@@ -654,4 +654,10 @@
   <data xml:space="preserve" name="Unknown">
     <value>不明</value>
   </data>
+  <data xml:space="preserve" name="IndexedFieldUnknown">
+    <value>インデックス対象のフィールド「{0}」に対応する正規表現のキャプチャグループがありません。使用可能なフィールド: {1}。</value>
+  </data>
+  <data xml:space="preserve" name="LogFormatError">
+    <value>プロファイル「{0}」、ログ形式 {1}: {2}</value>
+  </data>
 </root>

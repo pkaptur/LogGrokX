@@ -654,4 +654,10 @@
   <data xml:space="preserve" name="Unknown">
     <value>nieznany</value>
   </data>
+  <data xml:space="preserve" name="IndexedFieldUnknown">
+    <value>Indeksowane pole „{0}” nie odpowiada żadnej grupie wyrażenia regularnego. Dostępne pola: {1}.</value>
+  </data>
+  <data xml:space="preserve" name="LogFormatError">
+    <value>Profil „{0}”, format dziennika {1}: {2}</value>
+  </data>
 </root>

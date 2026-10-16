@@ -40,7 +40,7 @@ namespace LogGrokX.Settings
                 _regex = value;
                 InvokePropertyChanged();
                 InvokePropertyChanged(nameof(FieldNames));
-                InvokePropertyChanged(nameof(IsValid));
+                NotifyValidationChanged();
             }
         }
 
@@ -53,6 +53,7 @@ namespace LogGrokX.Settings
                     return;
                 _indexedFields = value;
                 InvokePropertyChanged();
+                NotifyValidationChanged();
             }
         }
 
@@ -89,7 +90,7 @@ namespace LogGrokX.Settings
                     return;
                 _transformations = value;
                 InvokePropertyChanged();
-                InvokePropertyChanged(nameof(IsValid));
+                NotifyValidationChanged();
             }
         }
 
@@ -121,23 +122,12 @@ namespace LogGrokX.Settings
             }
         }
 
-        public bool IsValid
-        {
-            get
-            {
-                try
-                {
-                    _ = new Regex(_regex);
-                    foreach (var transformation in TransformationsList)
-                        _ = new Regex(transformation);
-                    return true;
-                }
-                catch (ArgumentException)
-                {
-                    return false;
-                }
-            }
-        }
+        public bool IsValid => CreateFormat().GetValidationErrors().Count == 0;
+
+        public string ValidationMessage => string.Join(Environment.NewLine,
+            LogFormatValidation.GetMessages(CreateFormat()));
+
+        public bool HasValidationMessage => !IsValid;
 
         public IReadOnlyList<string> IndexedFieldsList => SplitLines(_indexedFields);
 
@@ -175,6 +165,20 @@ namespace LogGrokX.Settings
                 Transformations = TransformationsList,
                 XorMask = mask == 0 ? string.Empty : $"0x{mask:x2}"
             };
+        }
+
+        private LogFormat CreateFormat() => new()
+        {
+            Regex = _regex,
+            IndexedFields = IndexedFieldsList.ToArray(),
+            Transformations = TransformationsList.ToArray()
+        };
+
+        private void NotifyValidationChanged()
+        {
+            InvokePropertyChanged(nameof(IsValid));
+            InvokePropertyChanged(nameof(ValidationMessage));
+            InvokePropertyChanged(nameof(HasValidationMessage));
         }
 
         private static IReadOnlyList<string> SplitLines(string value)

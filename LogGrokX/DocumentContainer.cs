@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Linq;
 using DryIoc;
 using LogGrokX.Controls;
 using LogGrokX.Controls.GridView;
@@ -11,6 +10,7 @@ using LogGrokX.Data.Index;
 using LogGrokX.Data.Virtualization;
 using LogGrokX.Filter;
 using LogGrokX.Search;
+using LogGrokX.Settings;
 
 namespace LogGrokX
 {
@@ -33,6 +33,7 @@ namespace LogGrokX
             SearchAutocompleteCache autocompleteCache, SavedSearchPatternStore savedSearchPatternStore,
             TimelinePlacementService timelinePlacementService, ThreadGroupingService threadGroupingService)
         {
+            LogFormatValidation.ValidateProfile(profile);
             _container = new Container(rules =>
                 rules
                     .WithDefaultReuse(Reuse.Singleton)
@@ -62,7 +63,7 @@ namespace LogGrokX
                 return new LogFile(fileName, meta.XorMask);
             });
             _container.RegisterDelegate(_ => LogMetaInformationProvider.GetLogMetaInformation(fileName,
-                (profile.LogFormats ?? Array.Empty<LogFormat>()).Where(l => l.IsCorrect())),
+                profile.LogFormats ?? Array.Empty<LogFormat>()),
                 Reuse.Singleton);
             _container.Register<LineIndex>();
             _container.RegisterMapping<ILineIndex, LineIndex>();
