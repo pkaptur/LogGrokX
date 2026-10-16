@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using LogGrokX.Data.Index;
 using LogGrokX.Data.Monikers;
 
 namespace LogGrokX.Data
 {
-    public sealed class ParsedBufferConsumer
+    public sealed class ParsedBufferConsumer : IDisposable
     {
         private readonly BlockingCollection<(long startOffset, int lineCount, string buffer)> _queue
             = new(4);
@@ -15,7 +17,9 @@ namespace LogGrokX.Data
         private readonly Indexer _indexer;
         private readonly LogMetaInformation _logMetaInformation;
         private readonly StringPool _stringPool;
+        private readonly Task _consumingTask;
         private long? _totalBytesRead;
+        private int _disposed;
 
         public ParsedBufferConsumer(
             LineIndex lineIndex,
@@ -27,7 +31,7 @@ namespace LogGrokX.Data
             _indexer = indexer;
             _logMetaInformation = logMetaInformation;
             _stringPool = stringPool;
-            Task.Factory.StartNew(ConsumeBuffers);
+            _consumingTask = Task.Factory.StartNew(ConsumeBuffers);
         }
 
         public void AddParsedBuffer(long bufferStartOffset, int lineCount, string parsedBuffer)
@@ -41,6 +45,28 @@ namespace LogGrokX.Data
             _queue.CompleteAdding();
         }
 
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                return;
+
+            _queue.CompleteAdding();
+            try
+            {
+                _consumingTask.GetAwaiter().GetResult();
+            }
+            catch (Exception exception)
+            {
+                Trace.TraceError($"Indexing failed: {exception}");
+            }
+            finally
+            {
+                while (_queue.TryTake(out var pending))
+                    _stringPool.Return(pending.buffer);
+                _queue.Dispose();
+            }
+        }
+
         private unsafe void ConsumeBuffers()
         {
             long lineOffsetFromBufferStart = 0;
@@ -51,30 +77,35 @@ namespace LogGrokX.Data
             foreach (var (bufferStartOffset, lineCount, buffer) in _queue.GetConsumingEnumerable())
 #pragma warning restore CS8619
             {
-                var metaOffset = 0;
-                fixed (char* start = buffer)
+                try
                 {
-                    for (int idx = 0; idx < lineCount; idx++)
+                    var metaOffset = 0;
+                    fixed (char* start = buffer)
                     {
-                        var lineMetaInformation = LineMetaInformation.Get(start + metaOffset, componentsCount);
-                        lineOffsetFromBufferStart = bufferStartOffset + 
-                                                        lineMetaInformation.LineOffsetFromBufferStart;
-                        var lineNum = _lineIndex.Add(lineOffsetFromBufferStart);
+                        for (int idx = 0; idx < lineCount; idx++)
+                        {
+                            var lineMetaInformation = LineMetaInformation.Get(start + metaOffset, componentsCount);
+                            lineOffsetFromBufferStart = bufferStartOffset +
+                                                            lineMetaInformation.LineOffsetFromBufferStart;
+                            var lineNum = _lineIndex.Add(lineOffsetFromBufferStart);
 
-                        var indexKey = new IndexKey(buffer, metaOffset, componentsCount);
-                        _indexer.Add(indexKey, lineNum);
-                        metaOffset += lineMetaInformation.TotalSizeWithPayloadCharsAligned;
+                            var indexKey = new IndexKey(buffer, metaOffset, componentsCount);
+                            _indexer.Add(indexKey, lineNum);
+                            metaOffset += lineMetaInformation.TotalSizeWithPayloadCharsAligned;
+                        }
                     }
                 }
-                _stringPool.Return(buffer);
+                finally
+                {
+                    _stringPool.Return(buffer);
+                }
             }
 
-            if (_totalBytesRead is not { } fileSize)
+            if (_totalBytesRead is { } fileSize)
             {
-                throw new InvalidOperationException();
+                _lineIndex.Finish((int) (fileSize - lineOffsetFromBufferStart));
+                _indexer.Finish();
             }
-            _lineIndex.Finish((int) (fileSize - lineOffsetFromBufferStart));
-            _indexer.Finish();
         }
     }
 }

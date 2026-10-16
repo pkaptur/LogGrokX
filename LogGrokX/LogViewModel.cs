@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -35,6 +36,8 @@ namespace LogGrokX
         private readonly int _threadFieldIndex;
         private int _currentItemIndex;
         private readonly IReadOnlyList<ItemViewModel> _headerCollection;
+        private readonly CancellationTokenSource _loadingCancellation = new();
+        private bool _disposed;
 
         public LogViewModel(
             LogModelFacade logModelFacade,
@@ -241,8 +244,19 @@ namespace LogGrokX
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            _loadingCancellation.Cancel();
+            _loadingCancellation.Dispose();
             _timelinePlacementService.Changed -= OnTimelinePlacementChanged;
             _threadGroupingService.Changed -= OnThreadGroupingChanged;
+            _filterSettings.ExclusionsChanged -= UpdateFilteredCollection;
+            _filterSettings.ExclusionsChanged -= RefreshActiveFilters;
+            _filterSettings.TimeRangeChanged -= UpdateFilteredCollection;
+            _filterSettings.LineRangeChanged -= UpdateFilteredCollection;
+            _markedLines.Changed -= RefreshMarkers;
         }
 
         public bool HaveExclusions => _filterSettings.HaveExclusions;
@@ -383,34 +397,52 @@ namespace LogGrokX
 
         private async void UpdateDocumentWhileLoading()
         {
-            var delay = 10;
-            IsLoading = true;
-            while (!_logModelFacade.IsLoaded)
+            var cancellationToken = _loadingCancellation.Token;
+            try
             {
+                var delay = 10;
+                IsLoading = true;
+                while (!_logModelFacade.IsLoaded)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Lines.UpdateCount();
+                    TotalLineCount = _logModelFacade.LineCount;
+                    RefreshMarkers();
+                    await Task.Delay(delay, cancellationToken);
+                    if (delay < 500)
+                        delay *= 2;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
                 Lines.UpdateCount();
                 TotalLineCount = _logModelFacade.LineCount;
+                TimeRangeFilter.Refresh();
                 RefreshMarkers();
-                await Task.Delay(delay);
-                if (delay < 500)
-                    delay *= 2;
+                IsLoading = false;
             }
-
-            Lines.UpdateCount();
-            TotalLineCount = _logModelFacade.LineCount;
-            TimeRangeFilter.Refresh();
-            RefreshMarkers();
-            IsLoading = false;
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
         }
 
         private async void UpdateProgress()
         {
-            while (!_logModelFacade.IsLoaded)
+            var cancellationToken = _loadingCancellation.Token;
+            try
             {
-                await Task.Delay(200);
-                Progress = _logModelFacade.LoadProgress;
-            }
+                while (!_logModelFacade.IsLoaded)
+                {
+                    await Task.Delay(200, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Progress = _logModelFacade.LoadProgress;
+                }
 
-            Progress = 100;
+                cancellationToken.ThrowIfCancellationRequested();
+                Progress = 100;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
         }
         
         private void CopySelectedItemsToClipboard()

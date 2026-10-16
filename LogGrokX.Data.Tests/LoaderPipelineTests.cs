@@ -274,7 +274,7 @@ public class LoaderPipelineTests
             var indexer = new Indexer();
             var stringPool = new StringPool();
             var timeIndex = new TimeIndex();
-            var parsedBufferConsumer = new ParsedBufferConsumer(lineIndex, indexer, meta, stringPool);
+            using var parsedBufferConsumer = new ParsedBufferConsumer(lineIndex, indexer, meta, stringPool);
             var parser = new RegexBasedLineParser(meta, true);
             var lineProcessor = new LineProcessor(logFile, meta, parser, parsedBufferConsumer, stringPool, timeIndex);
 
@@ -307,7 +307,7 @@ public class LoaderPipelineTests
             var indexer = new Indexer();
             var stringPool = new StringPool();
             var timeIndex = new TimeIndex();
-            var parsedBufferConsumer = new ParsedBufferConsumer(lineIndex, indexer, meta, stringPool);
+            using var parsedBufferConsumer = new ParsedBufferConsumer(lineIndex, indexer, meta, stringPool);
             var parser = new RegexBasedLineParser(meta, true);
             var lineProcessor = new LineProcessor(logFile, meta, parser, parsedBufferConsumer, stringPool, timeIndex);
 
