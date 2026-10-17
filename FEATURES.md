@@ -795,7 +795,7 @@ French, Spanish, Japanese, Polish and Brazilian Portuguese**.
 2. Select a language, or **System language** to follow Windows.
 3. Click **Save**, then restart LogGrokX.
 
-![The interface and settings displayed in Russian](assets/images/feature-language-russian.png)
+![Settings displayed in Russian](assets/images/feature-language-russian.png)
 
 A fresh installation starts in the language selected in Setup. Portable builds
 follow the system language by default, falling back to English for an unsupported
@@ -815,7 +815,7 @@ the whole configuration. Each named profile holds its own **log formats** and
 **color rules**. View options, language, binary detection, value mappings,
 updates and diagnostics are shared across profiles.
 
-![Profile selector and Venn color rules in Settings → Profiles (Russian interface)](assets/images/feature-profiles.png)
+![Profile selector and Classic color rules in Settings → Profiles (Russian interface)](assets/images/feature-profiles.png)
 
 1. Open **Settings → Profiles** and select a profile.
 2. Use **New** for an empty profile or **Copy** to duplicate the selected one;
@@ -831,7 +831,7 @@ the open logs and preserves marked lines; renaming a profile with unchanged
 configuration does not trigger a reparse. If a profile cannot be applied, the
 last successfully applied configuration stays in use.
 
-Fresh configurations include **Kaspersky** (the original formats and colors),
+Fresh configurations include **Classic** (the original formats and colors),
 **Venn** (its own structured format and colors) and **Plain text** (whole-line
 text without color rules). Upgrades preserve the existing configuration, so
 these bundled profiles are not automatically added to an older installation.

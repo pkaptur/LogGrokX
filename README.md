@@ -162,7 +162,7 @@ LogGrokX.exe C:\logs\app.log C:\logs\worker.log
   Select a language in Settings → View, save and restart.
 - **Configuration profiles** — named sets of log formats and color rules,
   managed in Settings → Profiles and switched from the title bar for all open
-  logs. Fresh configurations include Kaspersky, Venn and Plain text profiles.
+  logs. Fresh configurations include Classic, Venn and Plain text profiles.
 - **Merged files view** — combine several opened logs into one time-ordered grid.
   Columns are aligned across different log formats, rows are tinted per source,
   and search, time-range filtering, thread grouping, JSON folding and marking
