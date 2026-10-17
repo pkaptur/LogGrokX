@@ -104,8 +104,7 @@ LogGrokX.exe C:\logs\app.log C:\logs\worker.log
   their folding.
 - **Color rules** — highlight matching lines and text with rules in
   `appsettings.yaml`; colors adapt to the active theme.
-- **Marked lines** — mark interesting lines; they are highlighted across the full
-  row in the grid (and merged view) and can be browsed in a dedicated view.
+- **Marked lines** — mark interesting lines and browse them in a dedicated view.
 - **Text zoom** — scale log text with `Ctrl` + mouse wheel or `Ctrl` + `+`/`-`,
   and reset with `Ctrl` + `0`; the size is persisted in `appsettings.yaml`.
 - **Centered navigation** — jumping to a search hit (including `F3`) or a marked
@@ -154,9 +153,15 @@ LogGrokX.exe C:\logs\app.log C:\logs\worker.log
   path or file name or open the containing folder.
 - **Grid conveniences** — horizontal scrolling, auto-width columns, and
   copy-as-displayed / copy-as-native for whole rows or single cells.
-- **Settings** — a tabbed settings window (View, Colors, Log formats, Value
-  mappings, Debug) that applies changes without a restart and mirrors
-  `appsettings.yaml`.
+- **Settings** — a tabbed settings window (View, Profiles, Value mappings,
+  Debug), with Colors and Log formats grouped under Profiles. Most
+  changes apply without a restart and mirror `appsettings.yaml`.
+- **Interface languages** — English, Russian, German, French, Spanish,
+  Japanese, Polish and Brazilian Portuguese, plus a system-language option.
+  Select a language in Settings → View, save and restart.
+- **Configuration profiles** — named sets of log formats and color rules,
+  managed in Settings → Profiles and switched from the title bar for all open
+  logs. Fresh configurations include Classic, Venn and Plain text profiles.
 - **Merged files view** — combine several opened logs into one time-ordered grid.
   Columns are aligned across different log formats, rows are tinted per source,
   and search, time-range filtering, thread grouping, JSON folding and marking
@@ -189,6 +194,8 @@ snippets for every feature live in [FEATURES.md](./FEATURES.md):
 - [📑 Files and documents](./FEATURES.md#-files-and-documents)
 - [🧭 Grid behaviour](./FEATURES.md#-grid-behaviour)
 - [⚙️ Settings](./FEATURES.md#️-settings)
+- [🌐 Interface languages](./FEATURES.md#-interface-languages)
+- [🗂️ Configuration profiles](./FEATURES.md#️-configuration-profiles)
 - [🌗 Light and dark themes](./FEATURES.md#-light-and-dark-themes)
 - [🩺 Crash dumps](./FEATURES.md#-crash-dumps)
 - [🛟 Support window](./FEATURES.md#-support-window)
@@ -308,6 +315,8 @@ Settings:
         BackgroundColor: "#FFCD5C5C"
 
   ViewSettings:
+    # Interface language; save and restart after changing
+    Language: system
     # BigLine: prune|break
     BigLine: prune
     BigLineSize: 4096
@@ -348,6 +357,12 @@ Settings:
 ```
 
 ### Log format options
+
+The example above uses the legacy shared format and color sections, which remain
+supported as the **Default** profile. Named profiles store these sections under
+`Settings.Profiles`; `Settings.SelectedProfile` selects the active one. See
+[Configuration profiles](./FEATURES.md#️-configuration-profiles) for a complete
+example and switching behaviour.
 
 | Option            | Description                                                        |
 | ----------------- | ------------------------------------------------------------------ |
