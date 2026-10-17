@@ -454,12 +454,16 @@ namespace LogGrokX.Settings
             if (Profiles.Select(profile => profile.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Profiles.Count)
                 errors.Add(Strings.Get("ProfileNamesUnique"));
 
-            foreach (var format in Profiles.SelectMany(profile => profile.LogFormats))
+            foreach (var profile in Profiles)
             {
-                if (!format.IsValid)
-                    errors.Add(Strings.Get("LogRegexInvalid"));
-                if (!format.TryGetXorMask(out _))
-                    errors.Add(Strings.Get("XorMaskInvalid"));
+                for (var index = 0; index < profile.LogFormats.Count; index++)
+                {
+                    var format = profile.LogFormats[index];
+                    if (!format.IsValid)
+                        errors.Add(LogFormatValidation.WithContext(profile.Name, index + 1, format.ValidationMessage));
+                    if (!format.TryGetXorMask(out _))
+                        errors.Add(Strings.Get("XorMaskInvalid"));
+                }
             }
 
             foreach (var rule in Profiles.SelectMany(profile => profile.ColorRules))

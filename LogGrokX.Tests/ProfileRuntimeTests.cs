@@ -11,6 +11,7 @@ using LogGrokX.Data;
 using LogGrokX.MarkedLines;
 using LogGrokX.MergedView;
 using LogGrokX.Search;
+using LogGrokX.Settings;
 using LogGrokX.Theming;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -19,6 +20,115 @@ namespace LogGrokX.Tests;
 [TestClass]
 public class ProfileRuntimeTests
 {
+    [TestMethod]
+    public void InvalidIndexedFieldFromYamlFallsBackToPlainText()
+    {
+        RunOnSta(() =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), $"loggrokx-invalid-format-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "sample.log");
+            var settingsPath = Path.Combine(directory, "appsettings.yaml");
+            using var diagnostics = new StringWriter();
+            using var listener = new TextWriterTraceListener(diagnostics);
+            Trace.Listeners.Add(listener);
+            try
+            {
+                File.WriteAllText(path, "INFO hello\n");
+                File.WriteAllText(settingsPath,
+                    "Settings:\n  Profiles:\n    - Name: Broken\n      LogFormats:\n" +
+                    "        - Regex: '^(?<Level>[A-Z]+) (?<Message>.*)$'\n          IndexedFields:\n            - Levl\n");
+                var settings = ApplicationSettings.LoadFromFile(settingsPath);
+                using var main = CreateMain(settings);
+
+                main.AddDocument(path);
+
+                Assert.AreEqual(1, main.Documents.Count);
+                Assert.IsNotNull(main.CurrentDocument);
+                WaitFor(() => !main.CurrentDocument.LogViewModel.IsLoading);
+                CollectionAssert.AreEqual(new[] { "Text" }, main.CurrentDocument.MetaInformation.FieldNames);
+                StringAssert.Contains(diagnostics.ToString(), "Broken");
+                StringAssert.Contains(diagnostics.ToString(), "Levl");
+                StringAssert.Contains(diagnostics.ToString(), "Skipping invalid log format");
+                main.Documents.Clear();
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+                File.Delete(path);
+                File.Delete(settingsPath);
+                Directory.Delete(directory);
+            }
+        });
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void OldClassicConfigWithUnknownProcessFieldLoadsOtherFormats(bool legacy)
+    {
+        RunOnSta(() =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), $"loggrokx-old-classic-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            var logPath = Path.Combine(directory, "sample.log");
+            var settingsPath = Path.Combine(directory, "appsettings.yaml");
+            var defaultSettingsPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+                "..", "..", "..", "..", "LogGrokX", "appsettings.yaml"));
+            using var diagnostics = new StringWriter();
+            using var listener = new TextWriterTraceListener(diagnostics);
+            Trace.Listeners.Add(listener);
+            try
+            {
+                var classic = ApplicationSettings.LoadFromFile(defaultSettingsPath).GetProfiles()
+                    .Single(profile => profile.Name == "Classic");
+                Assert.AreEqual(5, classic.LogFormats!.Length);
+                var oldFormat = classic.LogFormats[3];
+                oldFormat.IndexedFields = ["Process", .. oldFormat.IndexedFields];
+                var formats = classic.LogFormats.Select(format => new LogFormatViewModel(format).ToData());
+                var yaml = legacy
+                    ? "Settings:\n  LogFormats:\n" + string.Join("\n", SettingsYamlRenderer.RenderLogFormats(formats, 4)) + "\n"
+                    : "Settings:\n  SelectedProfile: Classic\n  Profiles:\n" +
+                      string.Join("\n", SettingsYamlRenderer.RenderProfiles([new ProfileViewModel(classic)], 4)) + "\n";
+                File.WriteAllText(settingsPath, yaml);
+                File.WriteAllText(logPath, "2026-01-02 03:04:05.678 INFO main App hello\n");
+                var settings = ApplicationSettings.LoadFromFile(settingsPath);
+                using var main = CreateMain(settings);
+
+                main.AddDocument(logPath);
+
+                var document = main.CurrentDocument;
+                Assert.IsNotNull(document);
+                WaitFor(() => !document.LogViewModel.IsLoading);
+                CollectionAssert.Contains(document.MetaInformation.FieldNames, "Level");
+                Assert.AreEqual(1, document.LogViewModel.Lines.Count);
+                StringAssert.Contains(diagnostics.ToString(), legacy ? "Default" : "Classic");
+                StringAssert.Contains(diagnostics.ToString(), "Process");
+                Assert.AreEqual(yaml, File.ReadAllText(settingsPath));
+                CollectionAssert.Contains(settings.GetSelectedProfile().LogFormats![3].IndexedFields, "Process");
+
+                if (!legacy)
+                {
+                    var plain = Profile("Text", "^(?'Text'.*)", "Gray");
+                    settings.UpdateProfiles([plain, classic], "Text");
+                    WaitFor(() => !main.CurrentDocument!.LogViewModel.IsLoading);
+                    main.SelectedProfile = main.Profiles.Single(profile => profile.Name == "Classic");
+                    WaitFor(() => !main.CurrentDocument!.LogViewModel.IsLoading);
+                    Assert.AreEqual("Classic", main.SelectedProfile.Name);
+                    CollectionAssert.Contains(main.CurrentDocument!.MetaInformation.FieldNames, "Level");
+                }
+            }
+            finally
+            {
+                Trace.Listeners.Remove(listener);
+                File.Delete(logPath);
+                File.Delete(settingsPath);
+                Directory.Delete(directory);
+            }
+        });
+    }
+
     [TestMethod]
     public void VennProfileGroupsConsecutiveLinesByThreadInBothViews()
     {

@@ -382,7 +382,16 @@ namespace LogGrokX
             }
 
             var alreadyOpen = FindOpenDocument(fileName);
-            CurrentDocument = alreadyOpen ?? CreateDocument(fileName);
+            try
+            {
+                CurrentDocument = alreadyOpen ?? CreateDocument(fileName);
+            }
+            catch (Exception e) when (e is FormatException or ArgumentException)
+            {
+                Trace.TraceError($"Cannot open '{fileName}': {e.Message}");
+                if (Application.Current != null)
+                    MessageBox.Show(e.Message, Strings.Get("LogFormats"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private DocumentViewModel? FindOpenDocument(string fileName)

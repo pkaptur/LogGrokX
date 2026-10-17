@@ -654,4 +654,10 @@
   <data xml:space="preserve" name="Unknown">
     <value>unknown</value>
   </data>
+  <data xml:space="preserve" name="IndexedFieldUnknown">
+    <value>Indexed field '{0}' does not match a capture group in the regex. Available fields: {1}.</value>
+  </data>
+  <data xml:space="preserve" name="LogFormatError">
+    <value>Profile '{0}', log format {1}: {2}</value>
+  </data>
 </root>

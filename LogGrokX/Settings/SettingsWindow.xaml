@@ -372,15 +372,18 @@
                                                                        Grid.ColumnSpan="2"
                                                                        Margin="0,0,0,2"
                                                                        Text="{loc:Loc IndexedFields}" />
-                                                            <ui:TextBox Grid.Row="3"
-                                                                        Grid.Column="0"
-                                                                        Grid.ColumnSpan="2"
-                                                                        MinHeight="44"
-                                                                        Margin="0,0,0,8"
-                                                                        AcceptsReturn="True"
-                                                                        FontFamily="{StaticResource JetBrainsMono}"
-                                                                        Text="{Binding IndexedFields, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                                                        TextWrapping="NoWrap" />
+                                                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+                                                                <ui:TextBox MinHeight="44"
+                                                                            AcceptsReturn="True"
+                                                                            FontFamily="{StaticResource JetBrainsMono}"
+                                                                            Text="{Binding IndexedFields, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                                            TextWrapping="NoWrap" />
+                                                                <TextBlock Margin="0,4,0,0"
+                                                                           Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                                                           Text="{Binding ValidationMessage}"
+                                                                           TextWrapping="Wrap"
+                                                                           Visibility="{Binding HasValidationMessage, Converter={StaticResource BoolToVisibility}}" />
+                                                            </StackPanel>
 
                                                             <Grid Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
                                                                 <Grid.ColumnDefinitions>
