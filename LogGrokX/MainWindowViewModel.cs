@@ -15,7 +15,6 @@ using LogGrokX.Localization;
 using LogGrokX.MarkedLines;
 using LogGrokX.MergedView;
 using LogGrokX.Search;
-using LogGrokX.Settings;
 using LogGrokX.Theming;
 using Microsoft.Win32;
 
@@ -192,7 +191,6 @@ namespace LogGrokX
             Colors.ColorSettings colors;
             try
             {
-                LogFormatValidation.ValidateProfile(profile);
                 colors = new Colors.ColorSettings(profile.ColorSettings ?? new Colors.Configuration.ColorSettings());
                 foreach (var document in documents)
                 {
@@ -388,7 +386,7 @@ namespace LogGrokX
             {
                 CurrentDocument = alreadyOpen ?? CreateDocument(fileName);
             }
-            catch (FormatException e)
+            catch (Exception e) when (e is FormatException or ArgumentException)
             {
                 Trace.TraceError($"Cannot open '{fileName}': {e.Message}");
                 if (Application.Current != null)

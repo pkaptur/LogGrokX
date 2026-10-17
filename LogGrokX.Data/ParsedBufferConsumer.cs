@@ -36,7 +36,15 @@ namespace LogGrokX.Data
 
         public void AddParsedBuffer(long bufferStartOffset, int lineCount, string parsedBuffer)
         {
-            _queue.Add((bufferStartOffset, lineCount, parsedBuffer));
+            try
+            {
+                _queue.Add((bufferStartOffset, lineCount, parsedBuffer));
+            }
+            catch
+            {
+                _stringPool.Return(parsedBuffer);
+                throw;
+            }
         }
 
         public void CompleteAdding(long totalBytesRead)
@@ -67,7 +75,21 @@ namespace LogGrokX.Data
             }
         }
 
-        private unsafe void ConsumeBuffers()
+        private void ConsumeBuffers()
+        {
+            try
+            {
+                ConsumeBuffersCore();
+            }
+            finally
+            {
+                _queue.CompleteAdding();
+                while (_queue.TryTake(out var pending))
+                    _stringPool.Return(pending.buffer);
+            }
+        }
+
+        private unsafe void ConsumeBuffersCore()
         {
             long lineOffsetFromBufferStart = 0;
 

@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using LogGrokX.Data;
 using LogGrokX.Localization;
@@ -17,13 +17,16 @@ internal static class LogFormatValidation
     public static string WithContext(string profileName, int formatNumber, string message) =>
         Strings.Format("LogFormatError", profileName, formatNumber, message);
 
-    public static void ValidateProfile(ProfileSettings profile)
+    public static LogFormat[] GetValidFormats(ProfileSettings profile)
     {
-        var errors = (profile.LogFormats ?? [])
-            .SelectMany((format, index) => GetMessages(format)
-                .Select(message => WithContext(profile.Name, index + 1, message)))
+        return (profile.LogFormats ?? [])
+            .Where((format, index) =>
+            {
+                var errors = GetMessages(format).ToArray();
+                foreach (var error in errors)
+                    Trace.TraceWarning($"Skipping invalid log format: {WithContext(profile.Name, index + 1, error)}");
+                return errors.Length == 0;
+            })
             .ToArray();
-        if (errors.Length > 0)
-            throw new FormatException(string.Join(Environment.NewLine, errors));
     }
 }

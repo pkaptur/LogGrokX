@@ -33,7 +33,7 @@ namespace LogGrokX
             SearchAutocompleteCache autocompleteCache, SavedSearchPatternStore savedSearchPatternStore,
             TimelinePlacementService timelinePlacementService, ThreadGroupingService threadGroupingService)
         {
-            LogFormatValidation.ValidateProfile(profile);
+            var logFormats = LogFormatValidation.GetValidFormats(profile);
             _container = new Container(rules =>
                 rules
                     .WithDefaultReuse(Reuse.Singleton)
@@ -63,7 +63,7 @@ namespace LogGrokX
                 return new LogFile(fileName, meta.XorMask);
             });
             _container.RegisterDelegate(_ => LogMetaInformationProvider.GetLogMetaInformation(fileName,
-                profile.LogFormats ?? Array.Empty<LogFormat>()),
+                logFormats),
                 Reuse.Singleton);
             _container.Register<LineIndex>();
             _container.RegisterMapping<ILineIndex, LineIndex>();
