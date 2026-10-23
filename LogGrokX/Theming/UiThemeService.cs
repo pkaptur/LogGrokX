@@ -15,6 +15,7 @@ namespace LogGrokX.Theming
 
         private readonly string _storeFileName =
             HomeDirectoryPathProvider.GetDataFileFullPath("Theme.json");
+        private ViewSettings.AccentColorKind _accentColor = ViewSettings.AccentColorKind.Blue;
 
         public UiThemeService()
         {
@@ -23,9 +24,90 @@ namespace LogGrokX.Theming
 
         public string CurrentTheme { get; private set; }
 
+        public event EventHandler? AccentColorChanged;
+
         public bool IsDark => CurrentTheme.StartsWith("Dark", StringComparison.OrdinalIgnoreCase);
 
-        public void ApplySavedTheme() => Apply(CurrentTheme);
+        public void ApplySavedTheme(ViewSettings.AccentColorKind accentColor = ViewSettings.AccentColorKind.Blue)
+        {
+            _accentColor = AccentColorPalette.Normalize(accentColor);
+            Apply(CurrentTheme);
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<string, string> AccentBrushColorKeys = new()
+        {
+            ["SystemAccentColorPrimaryBrush"] = "SystemAccentColorPrimary",
+            ["SystemAccentColorSecondaryBrush"] = "SystemAccentColorSecondary",
+            ["SystemAccentColorTertiaryBrush"] = "SystemAccentColorTertiary",
+            ["AccentFillColorDefaultBrush"] = "AccentFillColorDefault",
+            ["AccentFillColorSecondaryBrush"] = "AccentFillColorSecondary",
+            ["AccentFillColorTertiaryBrush"] = "AccentFillColorTertiary",
+            ["AccentButtonBackground"] = "AccentFillColorDefault",
+            ["AccentButtonBackgroundPointerOver"] = "AccentFillColorSecondary",
+            ["AccentButtonBackgroundPressed"] = "AccentFillColorTertiary",
+            ["CheckBoxCheckBackgroundFillChecked"] = "SystemAccentColorPrimary",
+            ["CheckBoxCheckBackgroundFillCheckedPointerOver"] = "AccentFillColorSecondary",
+            ["CheckBoxCheckBackgroundFillCheckedPressed"] = "AccentFillColorTertiary"
+        };
+
+        public void ApplyAccentColor(ViewSettings.AccentColorKind accentColor)
+        {
+            _accentColor = AccentColorPalette.Normalize(accentColor);
+            try
+            {
+                var previousBrushes = CaptureAccentBrushes(Application.Current.Resources);
+                ApplicationAccentColorManager.Apply(
+                    AccentColorPalette.GetColor(_accentColor),
+                    ApplicationThemeManager.GetAppTheme());
+                ApplyDerivedAccentBrushes(Application.Current.Resources, previousBrushes);
+                foreach (var resources in Application.Current.Resources.MergedDictionaries.OfType<DockThemeResources>())
+                    resources.ApplyAccentColor();
+                AccentColorChanged?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
+        }
+
+        internal static System.Collections.Generic.IReadOnlyDictionary<string, System.Windows.Media.SolidColorBrush>
+            CaptureAccentBrushes(ResourceDictionary resources)
+        {
+            var brushes = new System.Collections.Generic.Dictionary<string, System.Windows.Media.SolidColorBrush>();
+            foreach (var brushKey in AccentBrushColorKeys.Keys)
+            {
+                if (resources[brushKey] is System.Windows.Media.SolidColorBrush { IsFrozen: false } brush)
+                    brushes[brushKey] = brush;
+            }
+
+            return brushes;
+        }
+
+        internal static void ApplyDerivedAccentBrushes(ResourceDictionary resources,
+            System.Collections.Generic.IReadOnlyDictionary<string, System.Windows.Media.SolidColorBrush>? previousBrushes = null)
+        {
+            foreach (var (brushKey, colorKey) in AccentBrushColorKeys)
+                SetBrush(resources, brushKey, colorKey, previousBrushes);
+        }
+
+        private static void SetBrush(ResourceDictionary resources, string brushKey, string colorKey,
+            System.Collections.Generic.IReadOnlyDictionary<string, System.Windows.Media.SolidColorBrush>? previousBrushes)
+        {
+            var color = (System.Windows.Media.Color)resources[colorKey];
+            var brush = previousBrushes != null && previousBrushes.TryGetValue(brushKey, out var previousBrush)
+                ? previousBrush
+                : resources[brushKey] as System.Windows.Media.SolidColorBrush;
+            if (brush is { IsFrozen: false })
+            {
+                brush.Color = color;
+                brush.Opacity = 1;
+                resources[brushKey] = brush;
+            }
+            else
+            {
+                resources[brushKey] = new System.Windows.Media.SolidColorBrush(color);
+            }
+        }
 
         public void Apply(string themeName)
         {
@@ -38,10 +120,10 @@ namespace LogGrokX.Theming
                     isDark ? ApplicationTheme.Dark : ApplicationTheme.Light,
                     WindowBackdropType.None,
                     true);
-
                 foreach (var resources in Application.Current.Resources.MergedDictionaries.OfType<DockThemeResources>())
                     resources.Apply(isDark);
 
+                ApplyAccentColor(_accentColor);
                 CurrentTheme = themeName;
                 Save();
             }

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows.Input;
 using LogGrokX.Data;
 using LogGrokX.Localization;
+using LogGrokX.Theming;
 
 namespace LogGrokX.Settings
 {
@@ -19,6 +20,7 @@ namespace LogGrokX.Settings
         private readonly ThreadGroupingService _threadGroupingService;
         private readonly MergedFilesViewService _mergedFilesViewService;
         private readonly TextZoomService _textZoomService;
+        private readonly UiThemeService _themeService;
         private string _validationMessage = string.Empty;
         private bool _requiresRestart;
         private ColorRuleViewModel? _selectedColorRule;
@@ -32,18 +34,21 @@ namespace LogGrokX.Settings
         private string _savedMaxDumpsCountText = string.Empty;
         private string[] _savedProfiles;
         private ProfileViewModel _selectedProfile;
+        private ViewSettings.AccentColorKind _savedAccentColor;
 
         public SettingsViewModel(ApplicationSettings applicationSettings,
             TimelinePlacementService timelinePlacementService,
             ThreadGroupingService threadGroupingService,
             MergedFilesViewService mergedFilesViewService,
-            TextZoomService textZoomService)
+            TextZoomService textZoomService,
+            UiThemeService themeService)
         {
             _applicationSettings = applicationSettings;
             _timelinePlacementService = timelinePlacementService;
             _threadGroupingService = threadGroupingService;
             _mergedFilesViewService = mergedFilesViewService;
             _textZoomService = textZoomService;
+            _themeService = themeService;
 
             View = new ViewSettingsViewModel(applicationSettings.ViewSettings)
             {
@@ -344,6 +349,8 @@ namespace LogGrokX.Settings
             _applicationSettings.ViewSettings.Language = View.Language;
             _applicationSettings.ViewSettings.BigLineSize = bigLineSize;
             _applicationSettings.ViewSettings.UpdateMode = View.UpdateMode;
+            _applicationSettings.ViewSettings.AccentColor = View.AccentColor;
+            _themeService.ApplyAccentColor(View.AccentColor);
             _applicationSettings.DebugSettings.EnableCrashDumps = Debug.EnableCrashDumps;
             _applicationSettings.DebugSettings.MaxDumpsCount = maxDumpsCount;
 
@@ -365,6 +372,7 @@ namespace LogGrokX.Settings
             file.SetScalar("ViewSettings", "BigLine", View.BigLine == ViewSettings.ViewBigLine.Prune ? "prune" : "break");
             file.SetScalar("ViewSettings", "Language", View.Language);
             file.SetScalar("ViewSettings", "BigLineSize", bigLineSize.ToString(CultureInfo.InvariantCulture));
+            file.SetScalar("ViewSettings", "AccentColor", View.AccentColor.ToString().ToLowerInvariant());
             file.SetScalar("ViewSettings", "TimelineAtTop", View.TimelineAtTop ? "true" : "false");
             file.SetScalar("ViewSettings", "TimelineVisible", View.TimelineVisible ? "true" : "false");
             file.SetScalar("ViewSettings", "LogFontSize", View.LogFontSize.ToString(CultureInfo.InvariantCulture));
@@ -418,11 +426,20 @@ namespace LogGrokX.Settings
             _savedBigLineSizeText = View.BigLineSizeText;
             _savedEnableCrashDumps = Debug.EnableCrashDumps;
             _savedMaxDumpsCountText = Debug.MaxDumpsCountText;
+            _savedAccentColor = View.AccentColor;
         }
 
         private void OnTrackedPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            if (ReferenceEquals(sender, View) &&
+                e.PropertyName == nameof(ViewSettingsViewModel.AccentColor))
+                _themeService.ApplyAccentColor(View.AccentColor);
             UpdateRequiresRestart();
+        }
+
+        public void Cancel()
+        {
+            View.AccentColor = _savedAccentColor;
         }
 
         private void UpdateRequiresRestart()
