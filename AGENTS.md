@@ -113,7 +113,7 @@ formats; `MergedSearchDocumentViewModel` and `MergedTimeRangeFilterViewModel`
 mirror the single-log search and time-range panes; `MergedViewPalette` supplies
 per-source colors; `MergedLineViewModel`/`ListItemProvider` adapt merged rows to
 the grid. The view is toggled by `MergedFilesViewService` (title bar / Settings,
-persisted as `ViewSettings.MergedFilesView`) and rendered by
+enabled only for the current session) and rendered by
 `Styles/MergedViewTemplate.xaml`. Cross-format rules: identical column names are
 aligned case-insensitively, plain-text/unrecognized lines put the whole line into
 `Message`, and `Level`/`Severity` are unified into a single `Severity` column.
@@ -164,11 +164,28 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
   just the affected lines. `TextModel.GetCollapsedTextSubstitution` memoizes the
   inlined text of collapsed regions. Avoid reintroducing full re-creation of all
   lines on every folding change — it makes expanding large JSON sluggish (#38).
-- **Merged timeline range**: `MergedViewModel` keeps the **full** merged buffer
-  (`_mergedBuffer`) and derives the timeline axis (`Minimum`/`Maximum`,
-  `TotalLineCount`, `TimelineSegments`, `TimeRangeFilter.Refresh`) from it, while
-  the grid/search run on the filtered `_visibleBuffer` mapped back through
-  `_visibleToFull` (`VisibleLines`, `GetVisibleFullIndexMap`, `GetVisibleIndex`).
+- **Merged snapshots**: `MergedViewModel` builds merge order, time index, timeline
+  segments and filtering on worker tasks, then publishes an immutable
+  `MergedViewSnapshot` on the UI dispatcher. Source changes invalidate the full
+  `MergedDataSnapshot`; column/time filters reuse it. Request versions and
+  cancellation prevent stale results from publishing. `MergeSource` captures the
+  line count and time availability on the UI thread; workers only read that
+  already-published prefix of the append-only source indexes. Never mutate a
+  published snapshot: searches share its arrays and cache source matches by
+  data snapshot and query, so filters do not reread the files.
+  Append-only growth queues a follow-up rebuild without cancelling the current
+  one; source/schema/filter changes invalidate and cancel it. Only one rebuild
+  runs at a time, so loading sources can publish intermediate snapshots.
+  `MergeSource` captures a `TimeIndexPrefix` under the index lock in O(1).
+  Its backing-array prefix is never overwritten, including across `Clear`;
+  merge workers do not read the mutable `TimeIndex`. Snapshot source adapters
+  have independent field maps; compare their identity by `Document`/`ColorIndex`,
+  not adapter reference. Rebuild failures keep the previous view and expose
+  `RebuildError` with a retry command.
+- **Merged timeline range**: derive the timeline axis (`Minimum`/`Maximum`,
+  `TotalLineCount`, `TimelineSegments`, `TimeRangeFilter.Refresh`) from the full
+  `MergedDataSnapshot`, while the grid/search use `MergedViewSnapshot.Lines`
+  mapped back through `FullIndexMap` (`GetVisibleIndex`).
   Deriving the axis from the filtered buffer makes
   `MergedTimeRangeFilterViewModel.Refresh` clamp the handles to the shrunken
   bounds and silently reset the time range.

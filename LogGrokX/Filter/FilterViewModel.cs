@@ -1,46 +1,72 @@
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
 using System.Windows.Threading;
 using LogGrokX.Data;
 using LogGrokX.Data.Index;
 
 namespace LogGrokX.Filter
 {
-    public class FilterViewModel : ViewModelBase
+    public class FilterViewModel : ViewModelBase, IDisposable
     {
         private readonly IFilterSettings _filterSettings;
         private readonly IComponentIndexer _indexer;
         private string? _textFilter;
         private readonly int _indexedFieldIndex;
+        private readonly Dispatcher _dispatcher;
+        private readonly HashSet<string> _knownComponents = new(StringComparer.Ordinal);
+        private readonly object _newComponentsSync = new();
+        private bool _disposed;
 
         public FilterViewModel(
             string fieldName,
             IFilterSettings filterSettings,
             IComponentIndexer indexer,
-            LogMetaInformation metaInformation)
+            LogMetaInformation metaInformation,
+            Dispatcher dispatcher)
         {
-            
+            _dispatcher = dispatcher;
+            _dispatcher.VerifyAccess();
             _filterSettings = filterSettings;
-            _filterSettings.ExclusionsChanged += () => InvokePropertyChanged(nameof(IsFilterApplied));
+            _filterSettings.ExclusionsChanged += OnExclusionsChanged;
             
             _indexer = indexer;
             _indexedFieldIndex = metaInformation.GetIndexedFieldIndexByName(fieldName);
+            _indexer.ComponentAdded += OnNewComponentAdded;
 
             var fieldValues =
                 _indexer.GetAllComponents(_indexedFieldIndex);
 
 
             Elements = new ObservableCollection<ElementViewModel>(
-                fieldValues.Select(CreateElementViewModel));
-
-            _indexer.ComponentAdded += OnNewComponentAdded;
+                fieldValues.Where(_knownComponents.Add).Select(CreateElementViewModel));
         }
 
         private readonly ConcurrentBag<(int componentNumber, string value)> _newComponentsQueue = new();
         private DispatcherOperation? _addComponentDispatcherOperation;
+
+        public void Dispose()
+        {
+            _dispatcher.VerifyAccess();
+            lock (_newComponentsSync)
+            {
+                if (_disposed)
+                    return;
+                _disposed = true;
+                _indexer.ComponentAdded -= OnNewComponentAdded;
+                _filterSettings.ExclusionsChanged -= OnExclusionsChanged;
+                _addComponentDispatcherOperation?.Abort();
+                _addComponentDispatcherOperation = null;
+                _newComponentsQueue.Clear();
+            }
+            foreach (var element in Elements)
+                element.Dispose();
+        }
+
+        private void OnExclusionsChanged() => InvokePropertyChanged(nameof(IsFilterApplied));
 
         private ElementViewModel CreateElementViewModel(string fieldValue)
         {
@@ -61,25 +87,30 @@ namespace LogGrokX.Filter
                 return;
             }
 
-            _newComponentsQueue.Add((componentIndex, value));
-
-            void ProcessNewComponents()
+            lock (_newComponentsSync)
             {
+                if (_disposed)
+                    return;
+                _newComponentsQueue.Add((componentIndex, value));
+                _addComponentDispatcherOperation ??= _dispatcher.BeginInvoke(ProcessNewComponents);
+            }
+        }
+
+        private void ProcessNewComponents()
+        {
+            lock (_newComponentsSync)
+            {
+                _addComponentDispatcherOperation = null;
+                if (_disposed)
+                    return;
                 while (_newComponentsQueue.TryTake(out var valueTuple))
                 {
-                    var (componentNumber, componentValue) = valueTuple;
-                    var newElement = CreateElementViewModel(componentValue);
-                    Elements.Add(newElement);
+                    var (_, componentValue) = valueTuple;
+                    if (!_knownComponents.Add(componentValue))
+                        continue;
+                    Elements.Add(CreateElementViewModel(componentValue));
                 }
             }
-
-            _addComponentDispatcherOperation ??=
-                Application.Current.Dispatcher.BeginInvoke(() =>
-                {
-                    ProcessNewComponents();
-                    _addComponentDispatcherOperation = null;
-                    ProcessNewComponents();
-                });
         }
 
         public string? TextFilter
