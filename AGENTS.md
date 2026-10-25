@@ -133,12 +133,22 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
 
 - **Platform boundary**: ViewModels use `IUiDispatcher` / `IUiTimer`,
   `IDesktopService`, `IAppDialogs`, `IThemeService` and `IUpdateService`.
+  These dependencies are required constructor arguments; there are no global
+  dispatcher/desktop factories or fallback services. Tests pass their owner
+  dispatcher explicitly and never install an assembly-wide dispatcher factory.
   Windows/WPF implementations live in `LogGrokX/Platform` and are wired in
   `Bootstrap/App.xaml.cs`; the early WER configuration uses `ICrashDumpService`
-  in `EntryPoint`. Native title-bar hooks and cursor access use `ITitleBarService`.
+  in `EntryPoint`. Native title-bar hooks and cursor access use `ITitleBarService`
+  owned by the WPF control; neither native service is registered in application DI.
   Keep WPF objects out of ViewModel contracts: `LogGridModel`, `ColorRuleSet`,
   color strings and `IsTimelineAtTop` are converted by the UI layer
-  (`Styles/PresentationConverters.xaml`). Marked-line grouping belongs to XAML.
+  (`Styles/PresentationConverters.xaml`). `ColorRuleSet` and its configuration
+  live in `LogGrokX.Platform.Colors` and require `IColorValidator` at creation.
+  `Colors/ColorSettings` contains only the attached property; `ColorBrushes`
+  owns rendering and handles malformed colors without throwing. Accent colors
+  use the platform `AccentColorKind` enum; `DockThemes` owns AvalonDock theme
+  instances and their accent updates, while the converter only selects a theme.
+  Marked-line grouping and per-view saved-search filtering belong to XAML.
 - **AvalonDock 5**: the XML layout serializer lives in the separate package
   `Dirkster.AvalonDock.Serializer.Xml`; its namespace is
   `AvalonDock.Serializer.Xml` (not `AvalonDock.Layout.Serialization`).
@@ -334,13 +344,13 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
   `LinePartViewModel` snapshots `Current` in its constructor unless `detection`
   is passed explicitly; `detectBase64: false` forces `None`. Parts that captured
   `Current` follow changes live: every set of `BinaryDetectionOptions.Current`
-  bumps `CurrentVersion` and raises a weak static `CurrentChanged` (the part
-  keeps the handler in `_onDisplaySettingsChanged` — a `WeakReference` to an
-  unrooted delegate is collected, and visible rows then update only after
-  re-virtualization), and the part
-  refreshes its detection caches, decoded models and `TextModel`, re-raising
-  `IsPem` / `IsBase64` / `IsHex` / `IsDecoded` / `TextModel` (via the event,
-  marshalled to the UI dispatcher, or lazily on next access).
+  bumps `CurrentVersion` and raises a weak static `CurrentChanged`.
+  The application-scoped `DisplaySettingsMonitor` keeps the event handler alive,
+  tracks cells through weak references and batches notifications on its injected
+  UI dispatcher. Cells have neither a dispatcher field nor a per-cell static-event
+  subscription. The part refreshes its detection caches, decoded models and
+  `TextModel`, re-raising `IsPem` / `IsBase64` / `IsHex` / `IsDecoded` / `TextModel`
+  via the monitor or lazily on next access.
   `BaseLogLineViewModel` forwards part `IsPem` / `IsBase64` / `IsHex` changes to
   the row's `IsDecodable`. Disabled Base64 kinds are
   masked out of `Base64Detector.Detect` (`Base64Kinds`), and HEX detection is

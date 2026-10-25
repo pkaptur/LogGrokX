@@ -17,10 +17,10 @@ public sealed class UpdateViewModel : ViewModelBase
     private double _progress;
     private string _status = string.Empty;
 
-    public UpdateViewModel(IUpdateService service, ReleaseInfo release, IDesktopService? desktop = null)
+    public UpdateViewModel(IUpdateService service, ReleaseInfo release, IDesktopService desktop)
     {
         _service = service;
-        _desktop = desktop ?? DesktopServices.Current;
+        _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
         _release = release;
         CanInstall = service.CanInstall(release);
 

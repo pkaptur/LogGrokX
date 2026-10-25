@@ -16,9 +16,3 @@ public interface IUiTimer : IDisposable
     void Start();
     void Stop();
 }
-
-public static class UiDispatcher
-{
-    public static Func<IUiDispatcher> Factory { get; set; } = () => new SynchronizationContextDispatcher();
-    public static IUiDispatcher Current { get => Factory(); set => Factory = () => value; }
-}

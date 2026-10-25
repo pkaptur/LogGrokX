@@ -1,10 +1,12 @@
+using LogGrokX.Platform.Colors;
+using LogGrokX.Platform;
 #nullable enable
 using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using LogGrokX.Colors.Configuration;
+using LogGrokX.Platform.Colors.Configuration;
 using LogGrokX.Data;
 using LogGrokX.Data.Monikers;
 using LogGrokX.Settings;
@@ -161,19 +163,19 @@ public class ProfileSettingsTests
         var settings = ApplicationSettings.LoadFromFile(_path);
         var editor = CreateEditor(settings);
 
-        Assert.AreEqual(ViewSettings.AccentColorKind.Purple, editor.View.AccentColor);
+        Assert.AreEqual(AccentColorKind.Purple, editor.View.AccentColor);
         Assert.AreEqual(7, editor.View.AccentColorOptions.Count);
-        editor.View.AccentColor = ViewSettings.AccentColorKind.Green;
+        editor.View.AccentColor = AccentColorKind.Green;
         Assert.IsFalse(editor.RequiresRestart);
         Assert.IsTrue(editor.Save(), editor.ValidationMessage);
 
         StringAssert.Contains(File.ReadAllText(_path), "AccentColor: green");
-        Assert.AreEqual(ViewSettings.AccentColorKind.Green, settings.ViewSettings.AccentColor);
-        Assert.AreEqual(ViewSettings.AccentColorKind.Green,
+        Assert.AreEqual(AccentColorKind.Green, settings.ViewSettings.AccentColor);
+        Assert.AreEqual(AccentColorKind.Green,
             ApplicationSettings.LoadFromFile(_path).ViewSettings.AccentColor);
-        Assert.AreEqual(ViewSettings.AccentColorKind.Blue, new ViewSettings().AccentColor);
-        Assert.AreEqual(ViewSettings.AccentColorKind.Blue,
-            LogGrokX.Theming.AccentColorPalette.Normalize((ViewSettings.AccentColorKind)999));
+        Assert.AreEqual(AccentColorKind.Blue, new ViewSettings().AccentColor);
+        Assert.AreEqual(AccentColorKind.Blue,
+            LogGrokX.Theming.AccentColorPalette.Normalize((AccentColorKind)999));
     }
 
     [TestMethod]
@@ -181,9 +183,9 @@ public class ProfileSettingsTests
     {
         File.WriteAllText(_path, "Settings:\n  ViewSettings:\n    AccentColor: purple\n");
         var editor = CreateEditor(ApplicationSettings.LoadFromFile(_path));
-        editor.View.AccentColor = ViewSettings.AccentColorKind.Green;
+        editor.View.AccentColor = AccentColorKind.Green;
         editor.Cancel();
-        Assert.AreEqual(ViewSettings.AccentColorKind.Purple, editor.View.AccentColor);
+        Assert.AreEqual(AccentColorKind.Purple, editor.View.AccentColor);
     }
 
     [TestMethod]
@@ -359,7 +361,7 @@ public class ProfileSettingsTests
             "..", "..", "..", "..", "LogGrokX", "appsettings.yaml"));
         var profile = ApplicationSettings.LoadFromFile(path).GetProfiles()
             .Single(profile => profile.Name == "Classic");
-        var colors = new Colors.ColorSettings(profile.ColorSettings!);
+        var colors = new ColorRuleSet(profile.ColorSettings!, new Platform.WpfColorValidator());
         var match = colors.Rules.FirstOrDefault(rule => rule.IsMatch(line));
 
         System.Windows.Media.Color? ParseColor(string? value) => string.IsNullOrWhiteSpace(value) ? null :
@@ -387,5 +389,5 @@ public class ProfileSettingsTests
 
     internal static SettingsViewModel CreateEditor(ApplicationSettings settings) => new(settings,
         new TimelinePlacementService(settings), new ThreadGroupingService(settings),
-        new MergedFilesViewService(), new TextZoomService(settings), new LogGrokX.Theming.UiThemeService(), new Platform.WpfColorValidator());
+        new MergedFilesViewService(), new TextZoomService(settings), new LogGrokX.Theming.UiThemeService(), new Platform.WpfColorValidator(), TestServices.Desktop);
 }

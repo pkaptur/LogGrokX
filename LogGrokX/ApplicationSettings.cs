@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using LogGrokX.Colors.Configuration;
+using LogGrokX.Platform.Colors.Configuration;
 using LogGrokX.Controls.ListControls;
 using LogGrokX.Data;
 using LogGrokX.Settings;

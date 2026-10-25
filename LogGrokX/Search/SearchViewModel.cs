@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Collections.Specialized;
 using LogGrokX.Platform;
 using System.Windows.Input;
 using LogGrokX.Controls;
@@ -34,15 +33,14 @@ namespace LogGrokX.Search
         private readonly SavedSearchPatternStore _savedSearchPatternStore;
         private string _savedSearchFilter = string.Empty;
         private readonly IUiDispatcher _dispatcher;
-        private readonly ObservableCollection<SavedSearchPattern> _savedSearches = new();
         private bool _disposed;
         private string _newSearchName = string.Empty;
 
         public SearchViewModel(Func<SearchPattern, ISearchDocument> searchDocumentViewModelFactory,
             SearchAutocompleteCache searchAutocompleteCache,
-            SavedSearchPatternStore savedSearchPatternStore, IUiDispatcher? dispatcher = null)
+            SavedSearchPatternStore savedSearchPatternStore, IUiDispatcher dispatcher)
         {
-            _dispatcher = dispatcher ?? UiDispatcher.Current;
+            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _searchDocumentViewModelFactory =
                 pattern =>
                 {
@@ -68,9 +66,6 @@ namespace LogGrokX.Search
             Documents = new ObservableCollection<ISearchDocument>();
             _searchAutocompleteCache = searchAutocompleteCache;
             _savedSearchPatternStore = savedSearchPatternStore;
-            SavedSearches = new ReadOnlyObservableCollection<SavedSearchPattern>(_savedSearches);
-            _savedSearchPatternStore.Items.CollectionChanged += OnSavedSearchesChanged;
-            RefreshSavedSearches();
         }
         public event Action<int>? CurrentLineChanged;
 
@@ -181,7 +176,7 @@ namespace LogGrokX.Search
 
         public IEnumerable<string> AutoCompleteList => _searchAutocompleteCache.Items;
 
-        public ReadOnlyObservableCollection<SavedSearchPattern> SavedSearches { get; }
+        public ObservableCollection<SavedSearchPattern> SavedSearches => _savedSearchPatternStore.Items;
 
         public string SavedSearchFilter
         {
@@ -191,7 +186,6 @@ namespace LogGrokX.Search
                 if (_savedSearchFilter == value) return;
                 _savedSearchFilter = value;
                 InvokePropertyChanged();
-                RefreshSavedSearches();
             }
         }
 
@@ -305,23 +299,12 @@ namespace LogGrokX.Search
             timer.Start();
         }
 
-        private void OnSavedSearchesChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshSavedSearches();
-
-        private void RefreshSavedSearches()
-        {
-            var matches = _savedSearchPatternStore.Items
-                .Where(pattern => string.IsNullOrWhiteSpace(_savedSearchFilter) || pattern.MatchesFilter(_savedSearchFilter));
-            _savedSearches.Clear();
-            foreach (var pattern in matches) _savedSearches.Add(pattern);
-        }
-
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
             _searchPatternThrottleTimer?.Dispose();
             _autocompletionThrottleTimer?.Dispose();
-            _savedSearchPatternStore.Items.CollectionChanged -= OnSavedSearchesChanged;
             if (_currentDocument != null) _currentDocument.PropertyChanged -= OnCurrentDocumentPropertyChanged;
             foreach (var document in Documents.ToArray()) document.Dispose();
         }

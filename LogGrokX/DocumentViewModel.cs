@@ -1,3 +1,4 @@
+using LogGrokX.Platform.Colors;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -39,9 +40,10 @@ namespace LogGrokX
             ColorRuleSet colorSettings,
             TransformationPerformer transformationPerformer,
             TextViewSharedFoldingState foldingState,
-            TimeIndex timeIndex, IDesktopService? desktop = null)
+            TimeIndex timeIndex, IDesktopService desktop, DisplaySettingsMonitor displaySettings)
         {
-            _desktop = desktop ?? DesktopServices.Current;
+            DisplaySettings = displaySettings ?? throw new ArgumentNullException(nameof(displaySettings));
+            _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
             var logFileFilePath = logModelFacade.LogFile.FilePath;
             
             Title = 
@@ -89,6 +91,8 @@ namespace LogGrokX
 
             return SearchViewModel.CurrentMatchLine;
         }
+
+        internal DisplaySettingsMonitor DisplaySettings { get; }
 
         public string DocumentId { get; }
     

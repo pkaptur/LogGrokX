@@ -9,13 +9,13 @@ public sealed class WhatsNewViewModel : ViewModelBase
 {
     private readonly string _pageUrl;
 
-    public WhatsNewViewModel(string version, string notes, string pageUrl, IDesktopService? desktop = null)
+    public WhatsNewViewModel(string version, string notes, string pageUrl, IDesktopService desktop)
     {
         _pageUrl = pageUrl;
         Version = version.TrimStart('v', 'V');
         ReleaseNotes = string.IsNullOrWhiteSpace(notes) ? Strings.Get("NoReleaseNotes") : notes.Trim();
 
-        OpenReleasePageCommand = new DelegateCommand(() => (desktop ?? DesktopServices.Current).OpenUrl(_pageUrl));
+        OpenReleasePageCommand = new DelegateCommand(() => desktop.OpenUrl(_pageUrl));
         CloseCommand = new DelegateCommand(Close);
     }
 

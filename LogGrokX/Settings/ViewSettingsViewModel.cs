@@ -1,3 +1,4 @@
+using LogGrokX.Platform;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -11,7 +12,7 @@ namespace LogGrokX.Settings
     {
         private string _language;
         private ViewSettings.ViewBigLine _bigLine;
-        private ViewSettings.AccentColorKind _accentColor;
+        private AccentColorKind _accentColor;
         private string _bigLineSizeText;
         private bool _timelineAtTop;
         private bool _timelineVisible;
@@ -63,7 +64,7 @@ namespace LogGrokX.Settings
                 option.Color))
             .ToArray();
 
-        public ViewSettings.AccentColorKind AccentColor
+        public AccentColorKind AccentColor
         {
             get => _accentColor;
             set
@@ -251,7 +252,7 @@ namespace LogGrokX.Settings
         }
     }
 
-    public sealed record AccentColorOption(ViewSettings.AccentColorKind Value, string Title, string Color);
+    public sealed record AccentColorOption(AccentColorKind Value, string Title, string Color);
     public sealed record UpdateModeOption(ViewSettings.UpdateModeKind Value, string Title);
     public sealed record BigLineOption(ViewSettings.ViewBigLine Value, string Title);
 }

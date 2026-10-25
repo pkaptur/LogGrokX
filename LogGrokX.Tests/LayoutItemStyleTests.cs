@@ -65,10 +65,7 @@ public sealed class LayoutItemStyleTests
             try
             {
                 var settings = ApplicationSettings.Instance();
-                using var main = new MainWindowViewModel(settings, new SearchAutocompleteCache(),
-                    new SavedSearchPatternStore(), new UiThemeService(), new TimelinePlacementService(settings),
-                    new TextZoomService(settings), new ThreadGroupingService(settings), new MergedFilesViewService(),
-                    null, documents => new MarkedLinesViewModel(documents), new Platform.WpfColorValidator());
+                using var main = TestServices.CreateMain(settings);
                 main.AddDocument(path);
                 var viewModel = main.CurrentDocument!;
                 var document = new LayoutDocument { Content = new ContentControl { Content = viewModel } };

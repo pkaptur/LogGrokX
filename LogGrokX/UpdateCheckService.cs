@@ -40,16 +40,16 @@ public class UpdateCheckService : IUpdateService, IDisposable
     private bool _isWindowOpen;
     private bool _isDownloading;
 
-    private readonly IUpdatePresenter? _presenter;
+    private readonly IUpdatePresenter _presenter;
     private readonly IUiDispatcher _dispatcher;
     private IUiTimer? _checkTimer;
     private bool _disposed;
 
-    public UpdateCheckService(ApplicationSettings settings, IUpdatePresenter? presenter = null, IUiDispatcher? dispatcher = null)
+    public UpdateCheckService(ApplicationSettings settings, IUpdatePresenter presenter, IUiDispatcher dispatcher)
     {
         _settings = settings;
-        _presenter = presenter;
-        _dispatcher = dispatcher ?? UiDispatcher.Current;
+        _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
+        _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
     }
 
     public bool CanInstall(ReleaseInfo release) => IsInstalled && GetInstallerAssetName(release) != null;
@@ -145,7 +145,7 @@ public class UpdateCheckService : IUpdateService, IDisposable
 
     private void ShowUpdateWindow(ReleaseInfo release)
     {
-        if (_disposed || _isWindowOpen || _presenter == null)
+        if (_disposed || _isWindowOpen)
             return;
         _isWindowOpen = true;
         try { _presenter.ShowUpdate(this, release, () => _isWindowOpen = false); }

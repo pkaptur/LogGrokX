@@ -5,7 +5,7 @@ namespace LogGrokX
 {
     public partial class SupportWindow
     {
-        public SupportWindow(IUpdateService? updateCheckService = null, IDesktopService? desktop = null)
+        public SupportWindow(IUpdateService updateCheckService, IDesktopService desktop)
         {
             DataContext = new SupportViewModel(updateCheckService, desktop);
             InitializeComponent();

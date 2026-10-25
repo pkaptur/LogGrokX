@@ -1,3 +1,4 @@
+using LogGrokX.Platform.Colors;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -65,7 +66,7 @@ namespace LogGrokX.MergedView
             SavedSearchPatternStore savedSearchPatternStore,
             ApplicationSettings applicationSettings,
             ThreadGroupingService threadGroupingService,
-            TimelinePlacementService timelinePlacementService, IColorValidator? colorValidator = null, IUiDispatcher? dispatcher = null)
+            TimelinePlacementService timelinePlacementService, IColorValidator colorValidator, IUiDispatcher dispatcher)
             : this(documents, searchAutocompleteCache, savedSearchPatternStore, applicationSettings,
                 threadGroupingService, timelinePlacementService, BuildData, colorValidator, dispatcher)
         {
@@ -77,15 +78,15 @@ namespace LogGrokX.MergedView
             ApplicationSettings applicationSettings,
             ThreadGroupingService threadGroupingService,
             TimelinePlacementService timelinePlacementService,
-            Func<MergedDocumentItem[], MergeSource[], CancellationToken, MergedDataSnapshot> buildData, IColorValidator? colorValidator = null, IUiDispatcher? dispatcher = null)
+            Func<MergedDocumentItem[], MergeSource[], CancellationToken, MergedDataSnapshot> buildData, IColorValidator colorValidator, IUiDispatcher dispatcher)
         {
-            _dispatcher = dispatcher ?? UiDispatcher.Current;
+            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _buildData = buildData;
             _documents = documents;
             _applicationSettings = applicationSettings;
             _threadGroupingService = threadGroupingService;
             _timelinePlacementService = timelinePlacementService;
-            _colorSettings = new ColorRuleSet(applicationSettings.GetSelectedProfile().ColorSettings ?? new Colors.Configuration.ColorSettings(), colorValidator);
+            _colorSettings = new ColorRuleSet(applicationSettings.GetSelectedProfile().ColorSettings ?? new Platform.Colors.Configuration.ColorSettings(), colorValidator);
             _threadGroupingService.Changed += OnThreadGroupingChanged;
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
 

@@ -1,3 +1,4 @@
+using LogGrokX.Platform.Colors;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -29,9 +30,11 @@ namespace LogGrokX
         private readonly TextZoomService _textZoomService;
         private readonly ThreadGroupingService _threadGroupingService;
         private readonly MergedFilesViewService _mergedFilesViewService;
-        private readonly IAppDialogs? _dialogs;
+        private readonly IAppDialogs _dialogs;
         private readonly Dictionary<DocumentViewModel, DocumentContainer> _containers = new();
         private readonly IUiDispatcher _dispatcher;
+        private readonly IDesktopService _desktop;
+        private readonly DisplaySettingsMonitor _displaySettings;
         private bool _disposed;
         private ProfileSettings _selectedProfile;
         private ProfileSettings _appliedProfile;
@@ -65,11 +68,14 @@ namespace LogGrokX
             TextZoomService textZoomService,
             ThreadGroupingService threadGroupingService,
             MergedFilesViewService mergedFilesViewService,
-            IAppDialogs? dialogs,
+            IAppDialogs dialogs,
             Func<ObservableCollection<DocumentViewModel>, MarkedLinesViewModel> markedLinesViewModelFactory,
-            IColorValidator colorValidator, IUiDispatcher? dispatcher = null)
+            IColorValidator colorValidator, IUiDispatcher dispatcher, IDesktopService desktop,
+            DisplaySettingsMonitor displaySettings)
         {
-            _dispatcher = dispatcher ?? UiDispatcher.Current;
+            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+            _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
+            _displaySettings = displaySettings ?? throw new ArgumentNullException(nameof(displaySettings));
             _applicationSettings = applicationSettings;
             Profiles = new ObservableCollection<ProfileSettings>(applicationSettings.GetProfiles());
             _selectedProfile = Profiles.First(profile => string.Equals(profile.Name,
@@ -83,7 +89,7 @@ namespace LogGrokX
             _textZoomService = textZoomService;
             _threadGroupingService = threadGroupingService;
             _mergedFilesViewService = mergedFilesViewService;
-            _dialogs = dialogs;
+            _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _timelinePlacementService.Changed += OnTimelinePlacementChanged;
             _threadGroupingService.Changed += OnThreadGroupingChanged;
             _mergedFilesViewService.Changed += OnMergedFilesViewChanged;
@@ -190,10 +196,10 @@ namespace LogGrokX
             var documents = Documents.ToArray();
             var currentIndex = CurrentDocument == null ? -1 : Array.IndexOf(documents, CurrentDocument);
             var replacements = new List<(DocumentViewModel document, DocumentContainer container)>();
-            Colors.ColorRuleSet colors;
+            Platform.Colors.ColorRuleSet colors;
             try
             {
-                colors = new Colors.ColorRuleSet(profile.ColorSettings ?? new Colors.Configuration.ColorSettings(), _colorValidator);
+                colors = new Platform.Colors.ColorRuleSet(profile.ColorSettings ?? new Platform.Colors.Configuration.ColorSettings(), _colorValidator);
                 foreach (var document in documents)
                 {
                     var replacement = CreateDocumentResources(document.DocumentId, profile);
@@ -213,7 +219,7 @@ namespace LogGrokX
                 {
                     _lastFailedProfile = profile;
                     Trace.TraceError($"Cannot apply profile '{profile.Name}': {e}");
-                    _dialogs?.ShowWarning(Strings.Format("ProfileChangeError", profile.Name, e.Message), Strings.Get("ProfileChangeFailed"));
+                    _dialogs.ShowWarning(Strings.Format("ProfileChangeError", profile.Name, e.Message), Strings.Get("ProfileChangeFailed"));
                 }
                 return false;
             }
@@ -309,9 +315,9 @@ namespace LogGrokX
             InvokePropertyChanged(nameof(IsMergedView));
         }
 
-        private void OpenSupport() => _dialogs?.ShowSupport();
+        private void OpenSupport() => _dialogs.ShowSupport();
 
-        private void OpenSettingsWindow() => _dialogs?.ShowSettings();
+        private void OpenSettingsWindow() => _dialogs.ShowSettings();
 
         private void ToggleTheme()
         {
@@ -321,7 +327,7 @@ namespace LogGrokX
 
         private void OpenFile()
         {
-            foreach (var fileName in _dialogs?.SelectLogFiles() ?? Array.Empty<string>())
+            foreach (var fileName in _dialogs.SelectLogFiles())
             {
                 Trace.TraceInformation($"Open document {fileName}.");
                 AddDocument(fileName);
@@ -354,7 +360,7 @@ namespace LogGrokX
             catch (Exception e) when (e is FormatException or ArgumentException)
             {
                 Trace.TraceError($"Cannot open '{fileName}': {e.Message}");
-                _dialogs?.ShowWarning(e.Message, Strings.Get("LogFormats"));
+                _dialogs.ShowWarning(e.Message, Strings.Get("LogFormats"));
             }
         }
 
@@ -394,7 +400,7 @@ namespace LogGrokX
         private (DocumentViewModel document, DocumentContainer container) CreateDocumentResources(
             string fileName, ProfileSettings profile)
         {
-            var container = new DocumentContainer(fileName, profile, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService, _threadGroupingService, _dispatcher);
+            var container = new DocumentContainer(fileName, profile, _applicationSettings, _searchAutocompleteCache, _savedSearchPatternStore, _timelinePlacementService, _threadGroupingService, _dispatcher, _desktop, _colorValidator, _displaySettings);
             DocumentViewModel viewModel;
             try
             {

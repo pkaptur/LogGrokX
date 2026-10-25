@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using System.Windows.Controls;
 using LogGrokX.Controls;
 using LogGrokX.Controls.GridView;
+using ColumnSettings = LogGrokX.Controls.ListControls.ColumnSettings;
 using LogGrokX.Data;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -25,7 +26,7 @@ namespace LogGrokX.Tests
                 System.Windows.Controls.GridView CreateView(string regex)
                 {
                     var meta = new LogMetaInformation(new LogFormat { Regex = regex });
-                    var view = (System.Windows.Controls.GridView)new GridViewFactory(meta, false, null).CreateView(null);
+                    var view = (System.Windows.Controls.GridView)GridViewFactory.CreateView(new LogGridModel(meta, new ColumnSettings()), null);
                     view.Columns.RemoveAt(0);
                     foreach (var column in view.Columns)
                     {
@@ -85,7 +86,7 @@ namespace LogGrokX.Tests
                 var widths = Enumerable.Repeat(80.0, meta.FieldNames.Length + 2).ToArray();
                 widths[2] = invalidWidth;
 
-                var view = (System.Windows.Controls.GridView)new GridViewFactory(meta, false, null).CreateView(widths);
+                var view = (System.Windows.Controls.GridView)GridViewFactory.CreateView(new LogGridModel(meta, new ColumnSettings()), widths);
 
                 Assert.IsTrue(view.Columns.All(column => double.IsNaN(column.Width)));
             });
@@ -97,9 +98,9 @@ namespace LogGrokX.Tests
             RunOnSta(() =>
             {
                 var meta = new LogMetaInformation(new LogFormat { Regex = RegexPattern });
-                var factory = new GridViewFactory(meta, false, null);
+                var model = new LogGridModel(meta, new ColumnSettings());
 
-                var view = (System.Windows.Controls.GridView)factory.CreateView(null);
+                var view = (System.Windows.Controls.GridView)GridViewFactory.CreateView(model,null);
 
                 Assert.AreEqual(meta.FieldNames.Length + 2, view.Columns.Count);
 
@@ -161,7 +162,7 @@ namespace LogGrokX.Tests
         {
             var parser = new RegexBasedLineParser(meta);
             return new LineViewModel(0, source, parser, new Selection(),
-                new TransformationPerformer(Array.Empty<string>()));
+                new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings);
         }
 
         [TestMethod]
@@ -174,8 +175,8 @@ namespace LogGrokX.Tests
             RunOnSta(() =>
             {
                 var meta = new LogMetaInformation(new LogFormat { Regex = $"^(?<Time>)(?<Level>)(?<{textField}>.*)$" });
-                using var factory = new GridViewFactory(meta, false, null);
-                var view = (System.Windows.Controls.GridView)factory.CreateView(null);
+                using var model = new LogGridModel(meta, new ColumnSettings());
+                var view = (System.Windows.Controls.GridView)GridViewFactory.CreateView(model,null);
                 var fitted = view.Columns.Cast<LogGridViewColumn>().Where(column => column.FitToContent).ToArray();
                 Assert.AreEqual(1, fitted.Length);
                 fitted[0].HeaderTemplate.Seal();

@@ -50,6 +50,7 @@ namespace LogGrokX.Search
         private SearchLineIndex? _currentSearchLineIndex;
         private readonly Selection _markedLines;
         private readonly TransformationPerformer _transformationPerformer;
+        private readonly DisplaySettingsMonitor _displaySettings;
         private readonly DecodedPartsState _decodedParts = new();
 
         public SearchDocumentViewModel(LogModelFacade logModelFacade,
@@ -61,9 +62,10 @@ namespace LogGrokX.Search
             TransformationPerformer transformationPerformer,
             TimeIndex timeIndex,
             TextViewSharedFoldingState foldingState,
-            CurrentThreadFilter currentThreadFilter)
+            CurrentThreadFilter currentThreadFilter, DisplaySettingsMonitor displaySettings)
         {
             
+            _displaySettings = displaySettings;
             _gridModel = gridModel;
             FoldingState = foldingState;
 
@@ -405,7 +407,7 @@ namespace LogGrokX.Search
             return new VirtualList<(int originalLogLineNumber, string str), ItemViewModel>(
                     filteredLineWithOriginalLineNumber, indexAndString =>
                         new LineViewModel(indexAndString.originalLogLineNumber, indexAndString.str, lineParser, 
-                            _markedLines, _transformationPerformer,
+                            _markedLines, _transformationPerformer, _displaySettings,
                             valueMappersResolver: () => ValueMapper.Current.ForFields(fieldNames),
                             decodedParts: _decodedParts));
         } 

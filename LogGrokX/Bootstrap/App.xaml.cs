@@ -25,15 +25,13 @@ namespace LogGrokX.Bootstrap
             TracesLogger.Initialize();
             ExceptionsLogger.Initialize();
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            UiDispatcher.Current = new WpfUiDispatcher(Dispatcher);
-            DesktopServices.Current = new WindowsDesktopService();
             _container = new Container();
             LoggerRegistrationHelper.Register(_container);
 
             Trace.TraceInformation($"Git info: {ThisAssembly.Git.Branch}:{ThisAssembly.Git.Commit}");
 
             _container.UseDryIocDependencyResolver();
-            RegisterDependencies(_container);
+            RegisterDependencies(_container, new WpfUiDispatcher(Dispatcher), new WindowsDesktopService());
             Trace.TraceInformation("Initialization complete.");
             
             InitializeComponent();
@@ -75,13 +73,13 @@ namespace LogGrokX.Bootstrap
             ProcessCommandLine(e.Args.Where(item => item != null));
         }
 
-        private static void ShowWhatsNewIfAny(Window owner)
+        private void ShowWhatsNewIfAny(Window owner)
         {
             var pending = UpdateCheckService.TakePendingReleaseForCurrentVersion();
             if (pending == null)
                 return;
 
-            var window = new WhatsNewWindow(new WhatsNewViewModel(pending.Version, pending.Notes, pending.PageUrl));
+            var window = new WhatsNewWindow(new WhatsNewViewModel(pending.Version, pending.Notes, pending.PageUrl, _container.Resolve<IDesktopService>()));
             if (owner.IsVisible)
                 window.Owner = owner;
             window.Show();
@@ -95,14 +93,15 @@ namespace LogGrokX.Bootstrap
             _container.Dispose();
         }
 
-        internal static void RegisterDependencies(IRegistrator container)
+        internal static void RegisterDependencies(IRegistrator container, IUiDispatcher dispatcher, IDesktopService desktop)
         {
             container.RegisterDelegate(ApplicationSettings.Instance);
             container.Register<MainWindowViewModel>(Reuse.Singleton);
             container.Register<SearchAutocompleteCache>(Reuse.Singleton); 
             container.Register<SavedSearchPatternStore>(Reuse.Singleton);
-            container.RegisterInstance<IUiDispatcher>(UiDispatcher.Current);
-            container.RegisterInstance<IDesktopService>(DesktopServices.Current);
+            container.RegisterInstance<IUiDispatcher>(dispatcher);
+            container.Register<DisplaySettingsMonitor>(Reuse.Singleton);
+            container.RegisterInstance<IDesktopService>(desktop);
             container.Register<IUpdatePresenter, WpfUpdatePresenter>(Reuse.Singleton);
             container.Register<IAppDialogs, WpfAppDialogs>(Reuse.Singleton);
             container.Register<IColorValidator, WpfColorValidator>(Reuse.Singleton);
@@ -116,8 +115,6 @@ namespace LogGrokX.Bootstrap
             container.Register<MergedFilesViewService>(Reuse.Singleton);
             container.Register<UpdateCheckService>(Reuse.Singleton);
             container.RegisterMapping<IUpdateService, UpdateCheckService>();
-            container.Register<ICrashDumpService, WindowsCrashDumpService>(Reuse.Singleton);
-            container.Register<ITitleBarService, WindowsTitleBarService>(Reuse.Singleton);
             container.Register<MarkedLinesViewModel>(setup: Setup.With(allowDisposableTransient: true));
             container.Register<MainWindow>();
         }

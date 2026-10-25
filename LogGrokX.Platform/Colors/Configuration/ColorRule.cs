@@ -1,4 +1,4 @@
-﻿namespace LogGrokX.Colors.Configuration
+namespace LogGrokX.Platform.Colors.Configuration
 {
     public class ColorRule
     {

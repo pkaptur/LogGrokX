@@ -11,15 +11,15 @@ namespace LogGrokX
     {
         private const string RepositoryUrl = "https://github.com/zhenyatnk/LogGrokX";
 
-        private readonly IUpdateService? _updateCheckService;
+        private readonly IUpdateService _updateCheckService;
         private readonly IDesktopService _desktop;
         private bool _isCheckingForUpdates;
         private string _updateStatus = string.Empty;
 
-        public SupportViewModel(IUpdateService? updateCheckService = null, IDesktopService? desktop = null)
+        public SupportViewModel(IUpdateService updateCheckService, IDesktopService desktop)
         {
-            _updateCheckService = updateCheckService;
-            _desktop = desktop ?? DesktopServices.Current;
+            _updateCheckService = updateCheckService ?? throw new ArgumentNullException(nameof(updateCheckService));
+            _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
             CheckForUpdatesCommand = new DelegateCommand(CheckForUpdates);
             OpenReleasesCommand = new DelegateCommand(() => _desktop.OpenUrl($"{RepositoryUrl}/releases/latest"));
             OpenIssuesCommand = new DelegateCommand(() => _desktop.OpenUrl($"{RepositoryUrl}/issues/new"));
@@ -49,7 +49,7 @@ namespace LogGrokX
 
         public ICommand CheckForUpdatesCommand { get; }
 
-        public bool CanCheckForUpdates => _updateCheckService != null && !_isCheckingForUpdates;
+        public bool CanCheckForUpdates => !_isCheckingForUpdates;
 
         public string UpdateStatus
         {
@@ -73,7 +73,7 @@ namespace LogGrokX
 
         private async void CheckForUpdates()
         {
-            if (_updateCheckService == null || _isCheckingForUpdates)
+            if (_isCheckingForUpdates)
                 return;
 
             _isCheckingForUpdates = true;

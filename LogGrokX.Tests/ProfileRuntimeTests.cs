@@ -8,7 +8,7 @@ using System.Threading;
 using System.Windows.Threading;
 using System.Windows;
 using LogGrokX.Controls.GridView;
-using LogGrokX.Colors.Configuration;
+using LogGrokX.Platform.Colors.Configuration;
 using LogGrokX.Data;
 using LogGrokX.MarkedLines;
 using LogGrokX.MergedView;
@@ -535,11 +535,7 @@ public class ProfileRuntimeTests
         ColorSettings = new ColorSettings { Rules = [new ColorRule { RegexString = ".*", ForegroundColor = color }] }
     };
 
-    private static MainWindowViewModel CreateMain(ApplicationSettings settings) => new(settings,
-        new SearchAutocompleteCache(), new SavedSearchPatternStore(), new UiThemeService(),
-        new TimelinePlacementService(settings), new TextZoomService(settings),
-        new ThreadGroupingService(settings), new MergedFilesViewService(),
-        null, documents => new MarkedLinesViewModel(documents), new Platform.WpfColorValidator());
+    private static MainWindowViewModel CreateMain(ApplicationSettings settings) => TestServices.CreateMain(settings);
 
     private static void WaitFor(Func<bool> ready)
     {

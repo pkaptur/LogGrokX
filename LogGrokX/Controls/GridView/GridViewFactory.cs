@@ -1,19 +1,16 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using System.Windows.Threading;
 using LogGrokX.Controls.ListControls;
 using LogGrokX.Controls.TextRender;
-using LogGrokX.Data;
 using LogGrokX.Filter;
 
 namespace LogGrokX.Controls.GridView
 {
-    public class GridViewFactory : IDisposable
+    public static class GridViewFactory
     {
         private const string ThreadFieldName = "Thread";
         private const string ComponentFieldName = "Component";
@@ -22,46 +19,17 @@ namespace LogGrokX.Controls.GridView
         public const double PinColumnMinWidth = 30;
         private const double PinColumnPadding = 12;
 
-        private readonly LogMetaInformation _meta;
-        private readonly LogGridModel? _model;
-        private readonly Func<string, Dispatcher, FilterViewModel>? _filterViewModelFactory;
-        private readonly Dictionary<string, FilterViewModel> _filters = new(StringComparer.Ordinal);
-        private bool _disposed;
-        public GridViewFactory(LogGridModel model) : this(model.MetaInformation, false, null)
+        public static ViewBase CreateView(LogGridModel model, double[]? widths,
+            DataTemplate? leadingCellTemplate = null, string? sharedFoldingStatePath = null)
         {
-            _model = model;
-        }
-        public GridViewFactory(LogMetaInformation meta, 
-                bool canFilter,
-                Func<string, Dispatcher, FilterViewModel>? filterViewModelFactory)
-        {
-            _meta = meta;
-            _filterViewModelFactory = canFilter switch
-            {
-                true when filterViewModelFactory != null => filterViewModelFactory,
-                true when filterViewModelFactory == null => throw new ArgumentException(
-                    $"filterViewModelFactory cannot be null if canFilter is true."),
-                false when filterViewModelFactory != null => throw new ArgumentException(
-                    $"filterViewModelFactory must be null if canFilter is false."),
-                _ => _filterViewModelFactory
-            };
-        }
-
-        public ViewBase CreateView(double[]? widths) => CreateView(widths, null, null);
-
-        public ViewBase CreateView(double[]? widths, DataTemplate? leadingCellTemplate) =>
-            CreateView(widths, leadingCellTemplate, null);
-
-        public ViewBase CreateView(double[]? widths, DataTemplate? leadingCellTemplate, string? sharedFoldingStatePath)
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            var columnCount = _meta.FieldNames.Length + 2 + (leadingCellTemplate != null ? 1 : 0);
+            var meta = model.MetaInformation;
+            var columnCount = meta.FieldNames.Length + 2 + (leadingCellTemplate != null ? 1 : 0);
             if (widths != null && (widths.Length != columnCount ||
                                   widths.Any(width => !double.IsFinite(width) || width <= 0)))
                 widths = null;
 
             var indexFieldName = "Index";
-            var componentFieldName = _meta.FieldNames
+            var componentFieldName = meta.FieldNames
                 .FirstOrDefault(field => field.Equals(ComponentFieldName, StringComparison.OrdinalIgnoreCase));
             var view = new System.Windows.Controls.GridView();
 
@@ -86,11 +54,11 @@ namespace LogGrokX.Controls.GridView
                 });
             }
 
-            foreach (var fieldHeader in indexFieldName.Yield().Concat(_meta.FieldNames))
+            foreach (var fieldHeader in indexFieldName.Yield().Concat(meta.FieldNames))
             {
                 var fieldIndex = fieldHeader == indexFieldName
                     ? -1
-                    : Array.IndexOf(_meta.FieldNames, fieldHeader);
+                    : Array.IndexOf(meta.FieldNames, fieldHeader);
                 var contentTextProvider = fieldHeader == indexFieldName
                     ? static item => item is BaseLogLineViewModel line
                         ? line.IndexViewModel.OriginalText
@@ -101,16 +69,7 @@ namespace LogGrokX.Controls.GridView
 
                 DataTemplate BuildHeaderTemplate()
                 {
-                    FilterViewModel? filterViewModel = _model?.GetFilter(fieldHeader);
-                    if (_filterViewModelFactory != null && _meta.IsFieldIndexed(fieldHeader))
-                    {
-                        if (!_filters.TryGetValue(fieldHeader, out filterViewModel))
-                        {
-                            filterViewModel = _filterViewModelFactory(fieldHeader, view.Dispatcher);
-                            _filters.Add(fieldHeader, filterViewModel);
-                        }
-                    }
-
+                    var filterViewModel = model.GetFilter(fieldHeader);
                     return CreateHeaderTemplate(fieldHeader, filterViewModel);
                 }
                 
@@ -122,7 +81,7 @@ namespace LogGrokX.Controls.GridView
                         Path = 
                             fieldHeader == indexFieldName ? 
                                 new PropertyPath(nameof(LineViewModel.IndexViewModel)) : 
-                                new PropertyPath(".[(0)]", Array.IndexOf(_meta.FieldNames, fieldHeader)),
+                                new PropertyPath(".[(0)]", Array.IndexOf(meta.FieldNames, fieldHeader)),
                         Mode = BindingMode.OneWay
                     };
                     frameworkElementFactory.SetBinding(ContentControl.ContentProperty, binding);
@@ -184,16 +143,6 @@ namespace LogGrokX.Controls.GridView
             }
 
             return view;
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-                return;
-            _disposed = true;
-            foreach (var filter in _filters.Values)
-                filter.Dispose();
-            _filters.Clear();
         }
 
         private static bool IsMessageField(string fieldName) =>

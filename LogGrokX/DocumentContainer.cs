@@ -1,3 +1,4 @@
+using LogGrokX.Platform.Colors;
 using System;
 using System.Diagnostics;
 using LogGrokX.Platform;
@@ -31,9 +32,13 @@ namespace LogGrokX
         private readonly Container _container;
         public DocumentContainer(string fileName, ProfileSettings profile, ApplicationSettings applicationSettings,
             SearchAutocompleteCache autocompleteCache, SavedSearchPatternStore savedSearchPatternStore,
-            TimelinePlacementService timelinePlacementService, ThreadGroupingService threadGroupingService, IUiDispatcher? dispatcher = null)
+            TimelinePlacementService timelinePlacementService, ThreadGroupingService threadGroupingService, IUiDispatcher dispatcher, IDesktopService desktop,
+            IColorValidator colorValidator, DisplaySettingsMonitor displaySettings)
         {
-            dispatcher ??= UiDispatcher.Current;
+            ArgumentNullException.ThrowIfNull(dispatcher);
+            ArgumentNullException.ThrowIfNull(desktop);
+            ArgumentNullException.ThrowIfNull(colorValidator);
+            ArgumentNullException.ThrowIfNull(displaySettings);
             var logFormats = LogFormatValidation.GetValidFormats(profile);
             _container = new Container(rules =>
                 rules
@@ -44,7 +49,8 @@ namespace LogGrokX
             LoggerRegistrationHelper.Register(_container);
             
             _container.RegisterInstance<IUiDispatcher>(dispatcher);
-            _container.RegisterInstance<IDesktopService>(DesktopServices.Current);
+            _container.RegisterInstance<IDesktopService>(desktop);
+            _container.RegisterInstance(displaySettings, setup: Setup.With(preventDisposal: true));
             _container.RegisterInstance(autocompleteCache);
             _container.RegisterInstance(savedSearchPatternStore);
             _container.RegisterInstance(timelinePlacementService);
@@ -84,8 +90,8 @@ namespace LogGrokX
                 serviceKey: ParserType.Full);
             
             // Presentation
-            _container.RegisterDelegate(_ => new Colors.ColorRuleSet(
-                profile.ColorSettings ?? new Colors.Configuration.ColorSettings(), new WpfColorValidator()));
+            _container.RegisterDelegate(_ => new Platform.Colors.ColorRuleSet(
+                profile.ColorSettings ?? new Platform.Colors.Configuration.ColorSettings(), colorValidator));
             _container.RegisterDelegate(c => 
                 applicationSettings.GetColumnSettings(c.Resolve<LogMetaInformation>().LineRegex), 
                 reuse: Reuse.Singleton);
@@ -131,7 +137,7 @@ namespace LogGrokX
                     var currentThreadFilter = r.Resolve<CurrentThreadFilter>();
                     return pattern => new SearchDocumentViewModel(logModelFacade, filterSettings, gridModel, pattern,
                         markedLines, columnSettings, transofrmationPerformer, timeIndex, foldingState,
-                        currentThreadFilter);
+                        currentThreadFilter, displaySettings);
                 });
             
             // view

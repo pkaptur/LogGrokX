@@ -205,17 +205,7 @@ public class MainWindowViewModelLifecycleTests
     private static MainWindowViewModel CreateViewModel(ApplicationSettings? settings = null)
     {
         settings ??= ApplicationSettings.Instance();
-        return new MainWindowViewModel(
-            settings,
-            new SearchAutocompleteCache(),
-            new SavedSearchPatternStore(),
-            new UiThemeService(),
-            new TimelinePlacementService(settings),
-            new TextZoomService(settings),
-            new ThreadGroupingService(settings),
-            new MergedFilesViewService(),
-            null,
-            documents => new MarkedLinesViewModel(documents), new Platform.WpfColorValidator());
+        return TestServices.CreateMain(settings);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

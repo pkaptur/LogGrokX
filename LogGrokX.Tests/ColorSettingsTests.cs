@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using LogGrokX.Platform.Colors;
 using System.Windows.Media;
 using LogGrokX.Colors;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -21,18 +22,18 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void LightThemeKeepsConfiguredColors()
         {
-            var rule = new ColorSettings.ColorRule(new Regex("IMP"), MediaColors.DarkRed, MediaColors.White);
+            var rule = new ColorRuleDefinition(new Regex("IMP"), MediaColors.DarkRed.ToString(), MediaColors.White.ToString());
 
-            Assert.AreEqual(MediaColors.DarkRed, GetColor(rule.GetForegroundBrush(false)));
-            Assert.AreEqual(MediaColors.White, GetColor(rule.GetBackgroundBrush(false)));
+            Assert.AreEqual(MediaColors.DarkRed, GetColor(ColorBrushes.GetForegroundBrush(rule, false)));
+            Assert.AreEqual(MediaColors.White, GetColor(ColorBrushes.GetBackgroundBrush(rule, false)));
         }
 
         [TestMethod]
         public void DarkThemeLightensDarkForeground()
         {
-            var rule = new ColorSettings.ColorRule(new Regex("IMP"), MediaColors.DarkRed, null);
+            var rule = new ColorRuleDefinition(new Regex("IMP"), MediaColors.DarkRed.ToString(), string.Empty);
 
-            var dark = GetColor(rule.GetForegroundBrush(true));
+            var dark = GetColor(ColorBrushes.GetForegroundBrush(rule, true));
 
             Assert.IsTrue(Luminance(dark) > Luminance(MediaColors.DarkRed));
             Assert.IsTrue(Luminance(dark) >= 0.5);
@@ -41,20 +42,38 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void DarkThemeKeepsReadableForeground()
         {
-            var rule = new ColorSettings.ColorRule(new Regex("DBG"), MediaColors.Gray, null);
+            var rule = new ColorRuleDefinition(new Regex("DBG"), MediaColors.Gray.ToString(), string.Empty);
 
-            Assert.AreEqual(MediaColors.Gray, GetColor(rule.GetForegroundBrush(true)));
+            Assert.AreEqual(MediaColors.Gray, GetColor(ColorBrushes.GetForegroundBrush(rule, true)));
         }
 
         [TestMethod]
         public void DarkThemeDarkensLightBackground()
         {
-            var rule = new ColorSettings.ColorRule(new Regex("fatal"), null, MediaColors.White);
+            var rule = new ColorRuleDefinition(new Regex("fatal"), string.Empty, MediaColors.White.ToString());
 
-            var dark = GetColor(rule.GetBackgroundBrush(true));
+            var dark = GetColor(ColorBrushes.GetBackgroundBrush(rule, true));
 
             Assert.IsTrue(Luminance(dark) < Luminance(MediaColors.White));
             Assert.IsTrue(Luminance(dark) <= 0.3);
+        }
+
+        [TestMethod]
+        public void InvalidProfileColorIsRejectedBeforeRendering()
+        {
+            var configuration = new Platform.Colors.Configuration.ColorSettings
+            {
+                Rules = [new Platform.Colors.Configuration.ColorRule { RegexString = ".*", ForegroundColor = "invalid-color" }]
+            };
+            Assert.ThrowsExactly<System.FormatException>(() => new ColorRuleSet(configuration, new Platform.WpfColorValidator()));
+        }
+
+        [TestMethod]
+        public void MalformedColorCannotThrowFromRowRendering()
+        {
+            var rule = new ColorRuleDefinition(new Regex(".*"), "invalid-color", "invalid-color");
+            Assert.IsNull(ColorBrushes.GetForegroundBrush(rule, false));
+            Assert.IsNull(ColorBrushes.GetBackgroundBrush(rule, true));
         }
     }
 }

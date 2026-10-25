@@ -1,5 +1,7 @@
 using System;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Windows.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -8,12 +10,14 @@ namespace LogGrokX.Controls.GridView;
 
 public sealed class LogGridViewConverter : IValueConverter
 {
+    private static readonly ConditionalWeakTable<Dispatcher, DataTemplate> SourceStripeTemplates = new();
+    private static readonly ColorBrushConverter BrushConverter = new();
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not LogGridModel model) return DependencyProperty.UnsetValue;
-        var factory = new GridViewFactory(model);
-        return factory.CreateView(model.ColumnSettings.ColumnWidths,
-            model.HasSourceColumn ? CreateSourceStripeTemplate() : null,
+        return GridViewFactory.CreateView(model, model.ColumnSettings.ColumnWidths,
+            model.HasSourceColumn ? SourceStripeTemplates.GetValue(Dispatcher.CurrentDispatcher, _ => CreateSourceStripeTemplate()) : null,
             model.HasSourceColumn ? "Source.Document.FoldingState" : null);
     }
 
@@ -28,7 +32,7 @@ public sealed class LogGridViewConverter : IValueConverter
         border.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         border.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(2));
-        border.SetBinding(Border.BackgroundProperty, new Binding("Source.TimelineColor") { Converter = new ColorBrushConverter() });
+        border.SetBinding(Border.BackgroundProperty, new Binding("Source.TimelineColor") { Converter = BrushConverter });
         border.SetBinding(FrameworkElement.ToolTipProperty, new Binding("SourceTitle"));
         return new DataTemplate(typeof(DependencyObject)) { VisualTree = border };
     }

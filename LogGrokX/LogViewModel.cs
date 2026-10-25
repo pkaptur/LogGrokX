@@ -50,9 +50,9 @@ namespace LogGrokX
             TimelinePlacementService timelinePlacementService,
             ThreadGroupingService threadGroupingService,
             CurrentThreadFilter currentThreadFilter,
-            TextViewSharedFoldingState foldingState, IDesktopService? desktop = null)
+            TextViewSharedFoldingState foldingState, IDesktopService desktop)
         {
-            _desktop = desktop ?? DesktopServices.Current;
+            _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
             _logModelFacade = logModelFacade;
             _filterSettings = filterSettings;
             FoldingState = foldingState;

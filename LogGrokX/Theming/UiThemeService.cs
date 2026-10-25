@@ -16,7 +16,7 @@ namespace LogGrokX.Theming
 
         private readonly string _storeFileName =
             HomeDirectoryPathProvider.GetDataFileFullPath("Theme.json");
-        private ViewSettings.AccentColorKind _accentColor = ViewSettings.AccentColorKind.Blue;
+        private AccentColorKind _accentColor = AccentColorKind.Blue;
 
         public UiThemeService()
         {
@@ -29,7 +29,7 @@ namespace LogGrokX.Theming
 
         public bool IsDark => CurrentTheme.StartsWith("Dark", StringComparison.OrdinalIgnoreCase);
 
-        public void ApplySavedTheme(ViewSettings.AccentColorKind accentColor = ViewSettings.AccentColorKind.Blue)
+        public void ApplySavedTheme(AccentColorKind accentColor = AccentColorKind.Blue)
         {
             _accentColor = AccentColorPalette.Normalize(accentColor);
             Apply(CurrentTheme);
@@ -51,11 +51,7 @@ namespace LogGrokX.Theming
             ["CheckBoxCheckBackgroundFillCheckedPressed"] = "AccentFillColorTertiary"
         };
 
-        void IThemeService.ApplyAccentColor(string accentColor) =>
-            ApplyAccentColor(Enum.TryParse<ViewSettings.AccentColorKind>(accentColor, true, out var value)
-                ? value : ViewSettings.AccentColorKind.Blue);
-
-        public void ApplyAccentColor(ViewSettings.AccentColorKind accentColor)
+        public void ApplyAccentColor(AccentColorKind accentColor)
         {
             _accentColor = AccentColorPalette.Normalize(accentColor);
             try
@@ -67,7 +63,7 @@ namespace LogGrokX.Theming
                 ApplyDerivedAccentBrushes(Application.Current.Resources, previousBrushes);
                 foreach (var resources in Application.Current.Resources.MergedDictionaries.OfType<DockThemeResources>())
                     resources.ApplyAccentColor();
-                DockThemeConverter.ApplyAccentColor();
+                DockThemes.ApplyAccentColor();
                 AccentColorChanged?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception)

@@ -15,7 +15,7 @@ namespace LogGrokX.MergedView
 
         public MergedLineViewModel(MergedDocumentItem source, int lineNumber, long ticks, int mergedIndex = -1,
             DecodedPartsState? decodedParts = null)
-            : base(lineNumber, source.Document.MarkedLines)
+            : base(lineNumber, source.Document.MarkedLines, source.Document.DisplaySettings)
         {
             Source = source;
             _decodedParts = decodedParts;
@@ -29,7 +29,7 @@ namespace LogGrokX.MergedView
                 source.ColorIndex,
                 componentIndex);
 
-            Text = new LinePartViewModel(uniqueId, _transformedText,
+            Text = new LinePartViewModel(uniqueId, _transformedText, DisplaySettings,
                 valueMapperResolver: () => ValueMapper.Current.ForField(null));
             TimeText = ticks >= 0 ? TimestampParser.Format(ticks) : string.Empty;
         }
@@ -129,13 +129,13 @@ namespace LogGrokX.MergedView
             LinePartViewModel part;
             if (sourceFieldIndex >= 0 && sourceFieldIndex < fieldNames.Length)
             {
-                part = new LinePartViewModel(uniqueId, text,
+                part = new LinePartViewModel(uniqueId, text, DisplaySettings,
                     valueMapperResolver: () => ValueMapper.Current.ForField(fieldNames[sourceFieldIndex]),
                     decodedState: _decodedParts?.For(Source.Document, Index, sourceFieldIndex));
             }
             else
             {
-                part = new LinePartViewModel(uniqueId, text);
+                part = new LinePartViewModel(uniqueId, text, DisplaySettings);
             }
             if (mergedFieldIndex >= 0 && mergedFieldIndex < _parts.Length)
                 _parts[mergedFieldIndex] = part;

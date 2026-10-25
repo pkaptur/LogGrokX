@@ -31,7 +31,7 @@ public class LiveSettingsRefreshTests
         try
         {
             BinaryDetectionOptions.Current = BinaryDetectionOptions.All;
-            var part = new LinePartViewModel(1, Encode("Hello, World!"));
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings);
             var changed = new List<string>();
             ((INotifyPropertyChanged)part).PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);
 
@@ -56,7 +56,7 @@ public class LiveSettingsRefreshTests
         try
         {
             BinaryDetectionOptions.Current = BinaryDetectionOptions.None;
-            var part = new LinePartViewModel(1, Encode("Hello, World!"), detection: BinaryDetectionOptions.All);
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings, detection: BinaryDetectionOptions.All);
 
             BinaryDetectionOptions.Current = BinaryDetectionOptions.All;
 
@@ -75,7 +75,7 @@ public class LiveSettingsRefreshTests
         try
         {
             BinaryDetectionOptions.Current = BinaryDetectionOptions.All;
-            var part = new LinePartViewModel(1, Encode("Hello, World!"), detectBase64: false);
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings, detectBase64: false);
 
             BinaryDetectionOptions.Current = BinaryDetectionOptions.None;
 
@@ -94,7 +94,7 @@ public class LiveSettingsRefreshTests
         try
         {
             BinaryDetectionOptions.Current = BinaryDetectionOptions.All;
-            var part = new LinePartViewModel(1, $"hex 48656C6C6F20776F726C64 b64 {Encode("Hello, World!")}");
+            var part = new LinePartViewModel(1, $"hex 48656C6C6F20776F726C64 b64 {Encode("Hello, World!")}", TestServices.DisplaySettings);
             part.IsDecoded = true;
             Assert.IsTrue(part.IsDecoded);
 
@@ -120,7 +120,7 @@ public class LiveSettingsRefreshTests
         try
         {
             BinaryDetectionOptions.Current = BinaryDetectionOptions.All;
-            var part = new LinePartViewModel(1, "48656C6C6F20776F726C64");
+            var part = new LinePartViewModel(1, "48656C6C6F20776F726C64", TestServices.DisplaySettings);
             Assert.IsTrue(part.IsHex);
 
             BinaryDetectionOptions.Current = new BinaryDetectionOptions(true, true, false);
@@ -148,7 +148,7 @@ public class LiveSettingsRefreshTests
                     Items = new[] { new ValueMappingItem { Value = "0x00001", Mapping = "type 1" } }
                 }
             });
-            var part = new LinePartViewModel(1, "status 0x00001",
+            var part = new LinePartViewModel(1, "status 0x00001", TestServices.DisplaySettings,
                 valueMapperResolver: () => ValueMapper.Current.ForField(null));
 
             Assert.AreEqual("status 0x00001(type 1)", part.TextModel.GetDisplayedText(null));
@@ -171,7 +171,7 @@ public class LiveSettingsRefreshTests
         try
         {
             ValueMapper.Current = ValueMapper.Empty;
-            var part = new LinePartViewModel(1, "status 0x00001", valueMapper: Mapper(("0x00001", "type 1")));
+            var part = new LinePartViewModel(1, "status 0x00001", TestServices.DisplaySettings, valueMapper: Mapper(("0x00001", "type 1")));
 
             ValueMapper.Current = new ValueMapper(new[]
             {
@@ -201,7 +201,7 @@ public class LiveSettingsRefreshTests
                 Regex = @"^(?<Level>[^\s]+)\s+(?<Message>.*)$"
             });
             var line = new LineViewModel(0, "1 code 0x00001", new RegexBasedLineParser(meta), new Selection(),
-                new TransformationPerformer(Array.Empty<string>()),
+                new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings,
                 valueMappersResolver: () => ValueMapper.Current.ForFields(meta.FieldNames));
 
             Assert.AreEqual("1 code 0x00001", line.GetDisplayText(null));
@@ -238,7 +238,7 @@ public class LiveSettingsRefreshTests
                 Regex = @"^(?<Message>.*)$"
             });
             var line = new LineViewModel(0, Encode("Hello, World!"), new RegexBasedLineParser(meta),
-                new Selection(), new TransformationPerformer(Array.Empty<string>()));
+                new Selection(), new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings);
             var changed = new List<string>();
             ((INotifyPropertyChanged)line).PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);
 
@@ -265,7 +265,7 @@ public class LiveSettingsRefreshTests
         try
         {
             BinaryDetectionOptions.Current = BinaryDetectionOptions.All;
-            var part = new LinePartViewModel(1, Encode("Hello, World!"));
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings);
             var changed = new List<string>();
             ((INotifyPropertyChanged)part).PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);
 
@@ -292,7 +292,7 @@ public class LiveSettingsRefreshTests
         try
         {
             ValueMapper.Current = ValueMapper.Empty;
-            var part = new LinePartViewModel(1, "status 0x00001",
+            var part = new LinePartViewModel(1, "status 0x00001", TestServices.DisplaySettings,
                 valueMapperResolver: () => ValueMapper.Current.ForField(null));
             var changed = new List<string>();
             ((INotifyPropertyChanged)part).PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);

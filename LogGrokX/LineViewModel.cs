@@ -24,9 +24,9 @@ public class LineViewModel : BaseLogLineViewModel, IThreadGroupedItem
         private LinePartViewModel? _emptyPart;
 
         public LineViewModel(int index, string sourceString, ILineParser parser, Selection markedLines,
-            TransformationPerformer transformationPerformer, FieldValueMapper[]? valueMappers = null,
+            TransformationPerformer transformationPerformer, DisplaySettingsMonitor displaySettings, FieldValueMapper[]? valueMappers = null,
             Func<FieldValueMapper[]>? valueMappersResolver = null, DecodedPartsState? decodedParts = null)
-            : base(index, markedLines)
+            : base(index, markedLines, displaySettings)
         {
             _decodedParts = decodedParts;
             _parser = parser;
@@ -73,7 +73,7 @@ public class LineViewModel : BaseLogLineViewModel, IThreadGroupedItem
         private LinePartViewModel GetValue(int index)
         {
             if (index < 0 || index >= _parts.Length)
-                return _emptyPart ??= new LinePartViewModel(HashCode.Combine(Index, -1), string.Empty,
+                return _emptyPart ??= new LinePartViewModel(HashCode.Combine(Index, -1), string.Empty, DisplaySettings,
                     detectBase64: false);
 
             if (_parts[index] is { } cached)
@@ -84,10 +84,10 @@ public class LineViewModel : BaseLogLineViewModel, IThreadGroupedItem
 
             var decodedState = _decodedParts?.For(base.Index, index);
             var part = _valueMappersResolver != null
-                ? new LinePartViewModel(uniqueId, text,
+                ? new LinePartViewModel(uniqueId, text, DisplaySettings,
                     valueMapperResolver: () => GetValueMapper(index) ?? FieldValueMapper.None,
                     decodedState: decodedState)
-                : new LinePartViewModel(uniqueId, text, valueMapper: GetValueMapper(index),
+                : new LinePartViewModel(uniqueId, text, DisplaySettings, valueMapper: GetValueMapper(index),
                     decodedState: decodedState);
             _parts[index] = part;
 

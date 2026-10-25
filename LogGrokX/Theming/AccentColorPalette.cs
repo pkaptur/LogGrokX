@@ -1,3 +1,4 @@
+using LogGrokX.Platform;
 using System;
 using System.Collections.Generic;
 
@@ -7,19 +8,19 @@ public static class AccentColorPalette
 {
     public static IReadOnlyList<AccentColorDefinition> All { get; } =
     [
-        new(ViewSettings.AccentColorKind.Blue, "AccentBlue", "#0078D4"),
-        new(ViewSettings.AccentColorKind.Purple, "AccentPurple", "#8661C5"),
-        new(ViewSettings.AccentColorKind.Pink, "AccentPink", "#E3008C"),
-        new(ViewSettings.AccentColorKind.Red, "AccentRed", "#D13438"),
-        new(ViewSettings.AccentColorKind.Orange, "AccentOrange", "#F7630C"),
-        new(ViewSettings.AccentColorKind.Green, "AccentGreen", "#107C10"),
-        new(ViewSettings.AccentColorKind.Teal, "AccentTeal", "#008272")
+        new(AccentColorKind.Blue, "AccentBlue", "#0078D4"),
+        new(AccentColorKind.Purple, "AccentPurple", "#8661C5"),
+        new(AccentColorKind.Pink, "AccentPink", "#E3008C"),
+        new(AccentColorKind.Red, "AccentRed", "#D13438"),
+        new(AccentColorKind.Orange, "AccentOrange", "#F7630C"),
+        new(AccentColorKind.Green, "AccentGreen", "#107C10"),
+        new(AccentColorKind.Teal, "AccentTeal", "#008272")
     ];
 
-    public static ViewSettings.AccentColorKind Normalize(ViewSettings.AccentColorKind value) =>
-        Enum.IsDefined(value) ? value : ViewSettings.AccentColorKind.Blue;
+    public static AccentColorKind Normalize(AccentColorKind value) =>
+        Enum.IsDefined(value) ? value : AccentColorKind.Blue;
 
-    public static string GetColor(ViewSettings.AccentColorKind value)
+    public static string GetColor(AccentColorKind value)
     {
         value = Normalize(value);
         foreach (var definition in All)
@@ -33,6 +34,6 @@ public static class AccentColorPalette
 }
 
 public sealed record AccentColorDefinition(
-    ViewSettings.AccentColorKind Value,
+    AccentColorKind Value,
     string TitleResource,
     string Color);

@@ -6,7 +6,10 @@ namespace LogGrokX.Platform;
 
 public sealed class WindowsDesktopService : IDesktopService
 {
-    public void OpenUrl(string url) => OpenPath(url);
+    public void OpenUrl(string url)
+    {
+        using var process = Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
 
     public void OpenPath(string path)
     {
@@ -23,6 +26,7 @@ public sealed class WindowsDesktopService : IDesktopService
     public void RevealFile(string path)
     {
         var target = File.Exists(path) ? path : Path.GetDirectoryName(path);
+        if (string.IsNullOrWhiteSpace(target)) return;
         using var process = Process.Start(new ProcessStartInfo("explorer.exe")
         {
             Arguments = $"/select,\"{target}\"",

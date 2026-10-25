@@ -1,4 +1,4 @@
-namespace LogGrokX;
+namespace LogGrokX.Platform;
 
 public sealed record ReleaseInfo(string Tag, string PageUrl, string Notes, IReadOnlyDictionary<string, string> Assets);
 

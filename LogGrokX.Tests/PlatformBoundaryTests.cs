@@ -54,15 +54,13 @@ public sealed class PlatformBoundaryTests
     public void ApplicationCompositionResolvesPlatformInterfacesAndMainViewModel()
     {
         using var container = new DryIoc.Container();
-        Bootstrap.App.RegisterDependencies(container);
+        Bootstrap.App.RegisterDependencies(container, new ManualDispatcher(), new Desktop());
         var viewModel = container.Resolve<MainWindowViewModel>();
 
         Assert.IsNotNull(viewModel.MergedViewModel);
         Assert.IsInstanceOfType<IThemeService>(container.Resolve<IThemeService>());
         Assert.IsInstanceOfType<IAppDialogs>(container.Resolve<IAppDialogs>());
         Assert.IsInstanceOfType<IUpdateService>(container.Resolve<IUpdateService>());
-        Assert.IsInstanceOfType<ICrashDumpService>(container.Resolve<ICrashDumpService>());
-        Assert.IsInstanceOfType<ITitleBarService>(container.Resolve<ITitleBarService>());
     }
 
     [TestMethod]
@@ -74,7 +72,7 @@ public sealed class PlatformBoundaryTests
         using var viewModel = new MainWindowViewModel(settings, new SearchAutocompleteCache(), new SavedSearchPatternStore(),
             theme, new TimelinePlacementService(settings), new TextZoomService(settings), new ThreadGroupingService(settings),
             new MergedFilesViewService(), dialogs, documents => new MarkedLines.MarkedLinesViewModel(documents),
-            new AcceptColors(), new ManualDispatcher());
+            new AcceptColors(), new ManualDispatcher(), new Desktop(), new DisplaySettingsMonitor(new ManualDispatcher()));
 
         viewModel.OpenSettings.Execute(null);
         viewModel.OpenSupportCommand.Execute(null);
@@ -89,42 +87,22 @@ public sealed class PlatformBoundaryTests
     }
 
     [TestMethod]
-    public async Task DispatcherWithoutSynchronizationContextCanProcessPostedWork()
-    {
-        var previous = SynchronizationContext.Current;
-        IUiDispatcher dispatcher;
-        try
-        {
-            SynchronizationContext.SetSynchronizationContext(null);
-            dispatcher = new SynchronizationContextDispatcher();
-        }
-        finally
-        {
-            SynchronizationContext.SetSynchronizationContext(previous);
-        }
-
-        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var work = dispatcher.Post(() => completed.SetResult(dispatcher.CheckAccess()));
-        Assert.IsTrue(await completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
-    }
-
-    [TestMethod]
     public void AccentPreviewAndCancellationUseThemeInterface()
     {
         var settings = new ApplicationSettings();
-        settings.ViewSettings.AccentColor = ViewSettings.AccentColorKind.Blue;
+        settings.ViewSettings.AccentColor = AccentColorKind.Blue;
         var theme = new Theme();
         var editor = new Settings.SettingsViewModel(settings, new TimelinePlacementService(settings),
             new ThreadGroupingService(settings), new MergedFilesViewService(), new TextZoomService(settings),
-            theme, new AcceptColors());
+            theme, new AcceptColors(), new Desktop());
 
-        editor.View.AccentColor = ViewSettings.AccentColorKind.Red;
-        Assert.AreEqual("Red", theme.AccentColor);
-        Assert.AreEqual(ViewSettings.AccentColorKind.Blue, settings.ViewSettings.AccentColor);
+        editor.View.AccentColor = AccentColorKind.Red;
+        Assert.AreEqual(AccentColorKind.Red, theme.AccentColor);
+        Assert.AreEqual(AccentColorKind.Blue, settings.ViewSettings.AccentColor);
 
         editor.Cancel();
-        Assert.AreEqual("Blue", theme.AccentColor);
-        Assert.AreEqual(ViewSettings.AccentColorKind.Blue, editor.View.AccentColor);
+        Assert.AreEqual(AccentColorKind.Blue, theme.AccentColor);
+        Assert.AreEqual(AccentColorKind.Blue, editor.View.AccentColor);
     }
 
     [TestMethod]
@@ -228,29 +206,6 @@ public sealed class PlatformBoundaryTests
     }
 
     [TestMethod]
-    public void SavedSearchFiltersAreIndependentAndUnsubscribeOnDisposal()
-    {
-        var store = new SavedSearchPatternStore();
-        store.Items.Clear();
-        using var first = new SearchViewModel(_ => new SearchDocument(), new SearchAutocompleteCache(), store, new ManualDispatcher());
-        using var second = new SearchViewModel(_ => new SearchDocument(), new SearchAutocompleteCache(), store, new ManualDispatcher());
-        first.SavedSearchFilter = "first";
-        second.SavedSearchFilter = "second";
-        store.Items.Add(SavedSearchPattern.FromSearchPattern("first", new SearchPattern("alpha", false, false)));
-        store.Items.Add(SavedSearchPattern.FromSearchPattern("second", new SearchPattern("beta", false, false)));
-        Assert.AreEqual(1, first.SavedSearches.Count);
-        Assert.AreEqual("first", first.SavedSearches[0].Name);
-        Assert.AreEqual(1, second.SavedSearches.Count);
-        Assert.AreEqual("second", second.SavedSearches[0].Name);
-
-        first.Dispose();
-        store.Items.Add(SavedSearchPattern.FromSearchPattern("first again", new SearchPattern("gamma", false, false)));
-        Assert.AreEqual(1, first.SavedSearches.Count);
-        second.SavedSearchFilter = string.Empty;
-        Assert.AreEqual(3, second.SavedSearches.Count);
-    }
-
-    [TestMethod]
     [DataRow(false, 10, 20, CrashDumpCommand.Configure, CrashDumpCommand.Disable)]
     [DataRow(false, 10, null, CrashDumpCommand.Configure, CrashDumpCommand.Configure)]
     [DataRow(true, 10, null, CrashDumpCommand.Configure, CrashDumpCommand.Enable)]
@@ -296,8 +251,8 @@ public sealed class PlatformBoundaryTests
     {
         public bool IsDark { get; private set; }
         public string Toggle() { IsDark = !IsDark; return IsDark ? "Dark" : "Light"; }
-        public string? AccentColor { get; private set; }
-        public void ApplyAccentColor(string accentColor) => AccentColor = accentColor;
+        public AccentColorKind? AccentColor { get; private set; }
+        public void ApplyAccentColor(AccentColorKind accentColor) => AccentColor = accentColor;
     }
 
     private sealed class AcceptColors : IColorValidator

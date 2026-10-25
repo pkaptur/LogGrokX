@@ -10,11 +10,13 @@ namespace LogGrokX
     {
         private readonly LineIndex _lineIndex;
         private readonly LogFile _logFile;
+        private readonly DisplaySettingsMonitor _displaySettings;
 
         public LogHeaderCollection(
             LineIndex lineIndex,
-            LogFile logFile)
+            LogFile logFile, DisplaySettingsMonitor displaySettings)
         {
+            _displaySettings = displaySettings;
             _lineIndex = lineIndex;
             _logFile = logFile;
         }
@@ -60,7 +62,7 @@ namespace LogGrokX
             var buffer = new byte[headerLength];
             stream.ReadExactly(buffer.AsSpan());
             var headerString = _logFile.Encoding.GetString(buffer).TrimEnd();
-            return new ItemViewModel[] {new LogHeaderViewModel(headerString)};
+            return new ItemViewModel[] {new LogHeaderViewModel(headerString, _displaySettings)};
         }
     }
 }

@@ -21,8 +21,11 @@ public sealed class WpfAppDialogs(Func<SettingsViewModel> settingsFactory, IUpda
 
     public void ShowWarning(string message, string title)
     {
-        if (Application.Current?.MainWindow is { } owner)
+        if (Application.Current == null) return;
+        if (Application.Current.MainWindow is { } owner)
             MessageBox.Show(owner, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        else
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     public void ShowSettings() => ShowDialog(new SettingsWindow(settingsFactory()));

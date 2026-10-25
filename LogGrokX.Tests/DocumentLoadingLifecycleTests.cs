@@ -54,11 +54,7 @@ public class DocumentLoadingLifecycleTests
                     ],
                     SelectedProfile = "Lifecycle test"
                 };
-                using var viewModel = new MainWindowViewModel(
-                    settings, new SearchAutocompleteCache(), new SavedSearchPatternStore(), new UiThemeService(),
-                    new TimelinePlacementService(settings), new TextZoomService(settings),
-                    new ThreadGroupingService(settings), new MergedFilesViewService(),
-                    null, documents => new MarkedLinesViewModel(documents), new Platform.WpfColorValidator());
+                using var viewModel = TestServices.CreateMain(settings);
 
                 var references = OpenAndCloseDocument(viewModel, fileName, lineCount, waitUntilLoaded);
 

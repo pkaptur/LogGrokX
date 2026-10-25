@@ -1,6 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
-using LogGrokX.Colors.Configuration;
+using LogGrokX.Platform.Colors.Configuration;
 
 namespace LogGrokX.Settings
 {

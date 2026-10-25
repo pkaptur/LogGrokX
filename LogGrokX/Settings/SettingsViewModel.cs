@@ -36,16 +36,16 @@ namespace LogGrokX.Settings
         private string _savedMaxDumpsCountText = string.Empty;
         private string[] _savedProfiles;
         private ProfileViewModel _selectedProfile;
-        private ViewSettings.AccentColorKind _savedAccentColor;
+        private AccentColorKind _savedAccentColor;
 
         public SettingsViewModel(ApplicationSettings applicationSettings,
             TimelinePlacementService timelinePlacementService,
             ThreadGroupingService threadGroupingService,
             MergedFilesViewService mergedFilesViewService,
             TextZoomService textZoomService, IThemeService themeService,
-            IColorValidator colorValidator, IDesktopService? desktop = null)
+            IColorValidator colorValidator, IDesktopService desktop)
         {
-            _desktop = desktop ?? DesktopServices.Current;
+            _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
             _applicationSettings = applicationSettings;
             _timelinePlacementService = timelinePlacementService;
             _threadGroupingService = threadGroupingService;
@@ -354,7 +354,7 @@ namespace LogGrokX.Settings
             _applicationSettings.ViewSettings.BigLineSize = bigLineSize;
             _applicationSettings.ViewSettings.UpdateMode = View.UpdateMode;
             _applicationSettings.ViewSettings.AccentColor = View.AccentColor;
-            _themeService.ApplyAccentColor(View.AccentColor.ToString());
+            _themeService.ApplyAccentColor(View.AccentColor);
             _applicationSettings.DebugSettings.EnableCrashDumps = Debug.EnableCrashDumps;
             _applicationSettings.DebugSettings.MaxDumpsCount = maxDumpsCount;
 
@@ -437,7 +437,7 @@ namespace LogGrokX.Settings
         {
             if (ReferenceEquals(sender, View) &&
                 e.PropertyName == nameof(ViewSettingsViewModel.AccentColor))
-                _themeService.ApplyAccentColor(View.AccentColor.ToString());
+                _themeService.ApplyAccentColor(View.AccentColor);
             UpdateRequiresRestart();
         }
 

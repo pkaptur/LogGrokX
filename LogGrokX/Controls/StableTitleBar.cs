@@ -15,11 +15,14 @@ public class StableTitleBar : TitleBar
     private readonly DispatcherTimer _hoverCheck;
     private Window? _window;
     private IDisposable? _messageHook;
-    public ITitleBarService PlatformService { get; set; } = new WindowsTitleBarService();
+    private readonly ITitleBarService _platformService;
     private long _nextDiagnosticAt;
 
-    public StableTitleBar()
+    public StableTitleBar() : this(new WindowsTitleBarService()) { }
+
+    internal StableTitleBar(ITitleBarService platformService)
     {
+        _platformService = platformService ?? throw new ArgumentNullException(nameof(platformService));
         SetResourceReference(StyleProperty, typeof(TitleBar));
         _hoverCheck = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
         {
@@ -58,7 +61,7 @@ public class StableTitleBar : TitleBar
 
         // WPF-UI installs its hook at ContentRendered; the last added hook runs first.
         _messageHook?.Dispose();
-        _messageHook = PlatformService.InstallMessageHook(source.Handle, FilterMouseLeave);
+        _messageHook = _platformService.InstallMessageHook(source.Handle, FilterMouseLeave);
     }
 
     private void OnTitleBarUnloaded(object sender, RoutedEventArgs e)
@@ -125,7 +128,7 @@ public class StableTitleBar : TitleBar
 
     protected virtual bool TryGetCursorPosition(out Point position)
     {
-        var result = PlatformService.TryGetCursorPosition(out var nativePosition);
+        var result = _platformService.TryGetCursorPosition(out var nativePosition);
         position = new Point(nativePosition.X, nativePosition.Y);
         return result;
     }

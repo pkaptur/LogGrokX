@@ -16,6 +16,7 @@ namespace LogGrokX
         private readonly TransformationPerformer _transformationPerformer;
         private readonly TimeIndex _timeIndex;
         private readonly string[] _fieldNames;
+        private readonly DisplaySettingsMonitor _displaySettings;
         private readonly DecodedPartsState _decodedParts = new();
 
         public LineViewModelCollectionProvider(
@@ -25,8 +26,9 @@ namespace LogGrokX
             Selection markedLines, 
             TransformationPerformer transformationPerformer,
             TimeIndex timeIndex,
-            LogMetaInformation metaInformation)
+            LogMetaInformation metaInformation, DisplaySettingsMonitor displaySettings)
         {
+            _displaySettings = displaySettings;
             _fieldNames = metaInformation.FieldNames;
             _lineProvider = lineProvider;
             _lineParser = lineParser;
@@ -63,7 +65,7 @@ namespace LogGrokX
             return new VirtualList<(int index, string str), ItemViewModel>(itemProvider,
                 indexAndString => 
                     new LineViewModel(indexAndString.index, indexAndString.str, _lineParser,
-                        _markedLines, _transformationPerformer,
+                        _markedLines, _transformationPerformer, _displaySettings,
                         valueMappersResolver: () => ValueMapper.Current.ForFields(_fieldNames),
                         decodedParts: _decodedParts));
         }

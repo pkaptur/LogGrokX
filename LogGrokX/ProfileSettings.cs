@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using LogGrokX.Colors.Configuration;
+using LogGrokX.Platform.Colors.Configuration;
 using LogGrokX.Data;
 
 namespace LogGrokX;
