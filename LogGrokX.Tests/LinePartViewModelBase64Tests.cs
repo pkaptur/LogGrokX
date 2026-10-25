@@ -17,7 +17,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void Base64ContentIsDetected()
         {
-            var part = new LinePartViewModel(1, Encode("Hello, World!"));
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings);
 
             Assert.IsTrue(part.IsBase64);
             Assert.IsFalse(part.IsBase64Decoded);
@@ -26,7 +26,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void PlainContentIsNotDetectedAndCannotBeDecoded()
         {
-            var part = new LinePartViewModel(1, "Connection established");
+            var part = new LinePartViewModel(1, "Connection established", TestServices.DisplaySettings);
 
             Assert.IsFalse(part.IsBase64);
             part.IsBase64Decoded = true;
@@ -36,7 +36,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void DetectionCanBeDisabled()
         {
-            var part = new LinePartViewModel(1, Encode("Hello, World!"), detectBase64: false);
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings, detectBase64: false);
 
             Assert.IsFalse(part.IsBase64);
         }
@@ -45,7 +45,7 @@ namespace LogGrokX.Tests
         public void TogglingSwitchesTextModelAndRaisesNotifications()
         {
             var source = Encode("Hello, World!");
-            var part = new LinePartViewModel(1, source);
+            var part = new LinePartViewModel(1, source, TestServices.DisplaySettings);
             var original = part.TextModel;
             var changed = new List<string>();
             ((INotifyPropertyChanged)part).PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? string.Empty);
@@ -67,7 +67,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void DecodedJsonBecomesFoldable()
         {
-            var part = new LinePartViewModel(1, Encode("{\"a\":1,\"b\":{\"c\":[1,2,3]}}"));
+            var part = new LinePartViewModel(1, Encode("{\"a\":1,\"b\":{\"c\":[1,2,3]}}"), TestServices.DisplaySettings);
 
             part.IsBase64Decoded = true;
 
@@ -80,9 +80,9 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void PemIsDetectedSeparatelyFromBase64()
         {
-            var pem = new LinePartViewModel(1, Pem);
-            var base64 = new LinePartViewModel(2, Encode("Hello, World!"));
-            var both = new LinePartViewModel(3, $"{Encode("Hello, World!")}\n{Pem}");
+            var pem = new LinePartViewModel(1, Pem, TestServices.DisplaySettings);
+            var base64 = new LinePartViewModel(2, Encode("Hello, World!"), TestServices.DisplaySettings);
+            var both = new LinePartViewModel(3, $"{Encode("Hello, World!")}\n{Pem}", TestServices.DisplaySettings);
 
             Assert.IsTrue(pem.IsPem);
             Assert.IsFalse(pem.IsBase64);
@@ -95,7 +95,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void PemAndBase64AreToggledIndependently()
         {
-            var part = new LinePartViewModel(1, $"{Encode("Hello, World!")}\n{Pem}");
+            var part = new LinePartViewModel(1, $"{Encode("Hello, World!")}\n{Pem}", TestServices.DisplaySettings);
 
             part.IsPemDecoded = true;
             Assert.IsTrue(part.IsDecoded);
@@ -117,7 +117,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void PemCannotBeDecodedWithoutPem()
         {
-            var part = new LinePartViewModel(1, Encode("Hello, World!"));
+            var part = new LinePartViewModel(1, Encode("Hello, World!"), TestServices.DisplaySettings);
 
             part.IsPemDecoded = true;
 
@@ -129,7 +129,7 @@ namespace LogGrokX.Tests
         public void Base64InsideJsonIsDecodedAndJsonStaysFoldable()
         {
             var token = Encode("{\"alg\":\"HS256\",\"typ\":\"JWT\",\"ser\":\"empty\"}");
-            var part = new LinePartViewModel(1, $"{{\"token\":\"{token}\",\"n\":1}}");
+            var part = new LinePartViewModel(1, $"{{\"token\":\"{token}\",\"n\":1}}", TestServices.DisplaySettings);
 
             Assert.IsTrue(part.IsBase64);
             part.IsBase64Decoded = true;
@@ -142,7 +142,7 @@ namespace LogGrokX.Tests
         public void PemInsideBase64IsDetectedAndFullyDecoded()
         {
             using var certificate = CreateCertificate();
-            var part = new LinePartViewModel(1, Encode(certificate.ExportCertificatePem()));
+            var part = new LinePartViewModel(1, Encode(certificate.ExportCertificatePem()), TestServices.DisplaySettings);
 
             Assert.IsTrue(part.IsBase64);
             Assert.IsTrue(part.IsPem);
@@ -168,7 +168,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void PemInsideXmlIsDetected()
         {
-            var part = new LinePartViewModel(1, $"<root><cert>{Pem.Replace("\n", "&#xA;")}</cert></root>");
+            var part = new LinePartViewModel(1, $"<root><cert>{Pem.Replace("\n", "&#xA;")}</cert></root>", TestServices.DisplaySettings);
 
             Assert.IsTrue(part.IsPem);
             part.IsPemDecoded = true;
@@ -189,7 +189,7 @@ namespace LogGrokX.Tests
                          $"    {{\"certificates\": [{{\"data\": \"{certificateBase64}\"}}]," +
                          $"\"publicKey\": {{\"data\": \"{publicKeyBlob}\",\"keyId\": 29}}\n" +
                          "  ]\n}";
-            var part = new LinePartViewModel(1, source);
+            var part = new LinePartViewModel(1, source, TestServices.DisplaySettings);
 
             Assert.IsTrue(part.IsPem);
             Assert.IsTrue(part.IsBase64);
@@ -231,9 +231,9 @@ namespace LogGrokX.Tests
         {
             private readonly LinePartViewModel[] _parts;
 
-            public TestLine(params string[] fields) : base(0, new LogGrokX.Controls.Selection())
+            public TestLine(params string[] fields) : base(0, new LogGrokX.Controls.Selection(), TestServices.DisplaySettings)
             {
-                _parts = fields.Select((f, i) => new LinePartViewModel(i, f)).ToArray();
+                _parts = fields.Select((f, i) => new LinePartViewModel(i, f, TestServices.DisplaySettings)).ToArray();
             }
 
             public LinePartViewModel this[int index] => _parts[index];

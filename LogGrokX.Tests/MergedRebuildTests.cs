@@ -1,3 +1,4 @@
+using LogGrokX.Platform.Colors;
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -427,7 +428,7 @@ public class MergedRebuildTests
             var merged = fixture.Merged;
             var snapshot = merged.GetSearchSnapshot();
             var revision = merged.Revision;
-            merged.SetColorSettings(new Colors.ColorSettings(new Colors.Configuration.ColorSettings { Rules = [] }));
+            merged.SetColorSettings(new ColorRuleSet(new Platform.Colors.Configuration.ColorSettings { Rules = [] }, new Platform.WpfColorValidator()));
             var list = new Controls.ListControls.ListView();
             var row = new LogListViewItem(list) { Content = merged.Lines[0] };
             var root = new Border { Child = row };
@@ -444,17 +445,17 @@ public class MergedRebuildTests
                 var originalForeground = row.Foreground;
                 foreach (var color in new[] { "White", "Yellow" })
                 {
-                    merged.SetColorSettings(new Colors.ColorSettings(new Colors.Configuration.ColorSettings
+                    merged.SetColorSettings(new ColorRuleSet(new Platform.Colors.Configuration.ColorSettings
                     {
-                        Rules = [new Colors.Configuration.ColorRule
+                        Rules = [new Platform.Colors.Configuration.ColorRule
                         { RegexString = ".*", ForegroundColor = color, BackgroundColor = "Black" }]
-                    }));
+                    }, new Platform.WpfColorValidator()));
                     window.UpdateLayout();
                     Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ContextIdle);
                     Assert.AreEqual((Color)ColorConverter.ConvertFromString(color), ((SolidColorBrush)row.Foreground).Color);
                     Assert.AreEqual(System.Windows.Media.Colors.Black, ((SolidColorBrush)row.Background).Color);
                 }
-                merged.SetColorSettings(new Colors.ColorSettings(new Colors.Configuration.ColorSettings { Rules = [] }));
+                merged.SetColorSettings(new ColorRuleSet(new Platform.Colors.Configuration.ColorSettings { Rules = [] }, new Platform.WpfColorValidator()));
                 Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ContextIdle);
                 Assert.AreSame(originalForeground, row.Foreground);
                 Assert.AreSame(snapshot, merged.GetSearchSnapshot());
@@ -486,13 +487,11 @@ public class MergedRebuildTests
                 "LogGrokX", "appsettings.yaml")), settingsPath);
             var settings = ApplicationSettings.LoadFromFile(settingsPath);
             settings.SelectedProfile = "Venn";
-            Main = new MainWindowViewModel(settings, new SearchAutocompleteCache(), new SavedSearchPatternStore(),
-                new UiThemeService(), new TimelinePlacementService(settings), new TextZoomService(settings),
-                new ThreadGroupingService(settings), new MergedFilesViewService(), new UpdateCheckService(settings),
-                documents => new MarkedLinesViewModel(documents));
+            Main = TestServices.CreateMain(settings);
             Merged = buildData == null ? Main.MergedViewModel : new MergedViewModel(Main.Documents,
                 new SearchAutocompleteCache(), new SavedSearchPatternStore(), settings,
-                new ThreadGroupingService(settings), new TimelinePlacementService(settings), buildData);
+                new ThreadGroupingService(settings), new TimelinePlacementService(settings), buildData, new Platform.WpfColorValidator(),
+                new Platform.WpfUiDispatcher(Dispatcher.CurrentDispatcher));
             for (var source = 0; source < 3; source++)
             {
                 var path = Path.Combine(_directory, $"sample-{source}.log");

@@ -5,23 +5,22 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Windows.Data;
+using LogGrokX.Platform;
 using System.Windows.Input;
-using System.Windows.Threading;
 using LogGrokX.Controls;
 
 namespace LogGrokX.Search
 {
     // ReSharper disable once ClassNeverInstantiated.Global
-    public class SearchViewModel : ViewModelBase, IDataErrorInfo
+    public class SearchViewModel : ViewModelBase, IDataErrorInfo, IDisposable
     {
         private readonly Func<SearchPattern, ISearchDocument> _searchDocumentViewModelFactory;
         private string _textToSearch = string.Empty;
         private  bool _isCaseSensitive = SearchPattern.Empty.IsCaseSensitive;
         private bool _useRegex = SearchPattern.Empty.UseRegex;
 
-        private DispatcherTimer? _searchPatternThrottleTimer;
-        private DispatcherTimer? _autocompletionThrottleTimer;
+        private IUiTimer? _searchPatternThrottleTimer;
+        private IUiTimer? _autocompletionThrottleTimer;
         
         private readonly TimeSpan _searchPatternCommitThrottleInterval = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan _autoCompletionThrottleInterval = TimeSpan.FromSeconds(2);
@@ -33,12 +32,15 @@ namespace LogGrokX.Search
         private readonly SearchAutocompleteCache _searchAutocompleteCache;
         private readonly SavedSearchPatternStore _savedSearchPatternStore;
         private string _savedSearchFilter = string.Empty;
+        private readonly IUiDispatcher _dispatcher;
+        private bool _disposed;
         private string _newSearchName = string.Empty;
 
         public SearchViewModel(Func<SearchPattern, ISearchDocument> searchDocumentViewModelFactory,
             SearchAutocompleteCache searchAutocompleteCache,
-            SavedSearchPatternStore savedSearchPatternStore)
+            SavedSearchPatternStore savedSearchPatternStore, IUiDispatcher dispatcher)
         {
+            _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _searchDocumentViewModelFactory =
                 pattern =>
                 {
@@ -64,7 +66,6 @@ namespace LogGrokX.Search
             Documents = new ObservableCollection<ISearchDocument>();
             _searchAutocompleteCache = searchAutocompleteCache;
             _savedSearchPatternStore = savedSearchPatternStore;
-            SavedSearches = new ListCollectionView(_savedSearchPatternStore.Items);
         }
         public event Action<int>? CurrentLineChanged;
 
@@ -175,7 +176,7 @@ namespace LogGrokX.Search
 
         public IEnumerable<string> AutoCompleteList => _searchAutocompleteCache.Items;
 
-        public ListCollectionView SavedSearches { get; }
+        public ObservableCollection<SavedSearchPattern> SavedSearches => _savedSearchPatternStore.Items;
 
         public string SavedSearchFilter
         {
@@ -185,10 +186,6 @@ namespace LogGrokX.Search
                 if (_savedSearchFilter == value) return;
                 _savedSearchFilter = value;
                 InvokePropertyChanged();
-                SavedSearches.Filter = string.IsNullOrWhiteSpace(value)
-                    ? (Predicate<object>?) null
-                    : o => o is SavedSearchPattern pattern && pattern.MatchesFilter(value);
-                SavedSearches.Refresh();
             }
         }
 
@@ -289,22 +286,27 @@ namespace LogGrokX.Search
                 timeSpan);
         }
 
-        private static void Throttle(ref DispatcherTimer? throttleTimer, Action action, TimeSpan interval)
+        private void Throttle(ref IUiTimer? throttleTimer, Action action, TimeSpan interval)
         {
-            throttleTimer?.Stop();
-            throttleTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher.CurrentDispatcher)
+            throttleTimer?.Dispose();
+            IUiTimer? timer = null;
+            timer = _dispatcher.CreateTimer(interval, () =>
             {
-                Interval = interval
-            };
+                timer!.Dispose();
+                if (!_disposed) action();
+            });
+            throttleTimer = timer;
+            timer.Start();
+        }
 
-            DispatcherTimer? timer = throttleTimer;
-            throttleTimer.Tick += (_, _) =>
-            {
-                timer.Stop();
-                timer = null;
-                action();
-            };
-            throttleTimer.Start();
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _searchPatternThrottleTimer?.Dispose();
+            _autocompletionThrottleTimer?.Dispose();
+            if (_currentDocument != null) _currentDocument.PropertyChanged -= OnCurrentDocumentPropertyChanged;
+            foreach (var document in Documents.ToArray()) document.Dispose();
         }
 
         private void CommitSearchPatternImmediately(string searchText, in bool isCaseSensitive, in bool useRegex)

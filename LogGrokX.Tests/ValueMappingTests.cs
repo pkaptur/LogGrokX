@@ -101,7 +101,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void LinePartShowsMappedTextAndKeepsOriginal()
         {
-            var part = new LinePartViewModel(1, "status 0x00001", valueMapper: Mapper(("0x00001", "type 1")));
+            var part = new LinePartViewModel(1, "status 0x00001", TestServices.DisplaySettings, valueMapper: Mapper(("0x00001", "type 1")));
 
             Assert.AreEqual("status 0x00001", part.OriginalText);
             Assert.AreEqual("status 0x00001(type 1)", part.TextModel.GetDisplayedText(null));
@@ -110,7 +110,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void LinePartWithoutMapperIsUnchanged()
         {
-            var part = new LinePartViewModel(1, "status 0x00001");
+            var part = new LinePartViewModel(1, "status 0x00001", TestServices.DisplaySettings);
 
             Assert.AreEqual("status 0x00001", part.TextModel.GetDisplayedText(null));
         }
@@ -132,7 +132,7 @@ namespace LogGrokX.Tests
                 }
             });
             var line = new LineViewModel(0, "1 code 1", new RegexBasedLineParser(meta), new Selection(),
-                new TransformationPerformer(Array.Empty<string>()), mapper.ForFields(meta.FieldNames));
+                new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings, mapper.ForFields(meta.FieldNames));
 
             Assert.AreEqual("1(info)", line[0].TextModel.GetDisplayedText(null));
             Assert.AreEqual("code 1", line[1].TextModel.GetDisplayedText(null));

@@ -13,15 +13,18 @@ namespace LogGrokX
         private readonly Selection _markedLines;
         private readonly Action _onMarkedLinesChanged;
 
-        protected BaseLogLineViewModel(int index, Selection markedLines)
+        protected BaseLogLineViewModel(int index, Selection markedLines, DisplaySettingsMonitor displaySettings)
         {
+            DisplaySettings = displaySettings ?? throw new ArgumentNullException(nameof(displaySettings));
             Index = index;
-            IndexViewModel = new LinePartViewModel(HashCode.Combine(-1, index), Index.ToString(), detectBase64: false);
+            IndexViewModel = new LinePartViewModel(HashCode.Combine(-1, index), Index.ToString(), displaySettings, detectBase64: false);
             _markedLines = markedLines;
             _onMarkedLinesChanged = () => InvokePropertyChanged(nameof(IsMarked));
             _markedLines.SubscribeWeak(_onMarkedLinesChanged);
         }
         
+        protected DisplaySettingsMonitor DisplaySettings { get; }
+
         public int Index { get; }
 
         public LinePartViewModel IndexViewModel { get; }

@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using LogGrokX.Controls;
 using LogGrokX.Controls.GridView;
+using LogGrokX.Controls.ListControls;
 using LogGrokX.Data;
 using LogGrokX.Data.Index;
 using LogGrokX.Filter;
@@ -86,7 +87,7 @@ public class GridProfileTransitionTests
             var meta = new LogMetaInformation(new LogFormat { Regex = regex });
             var list = CreateList();
             list.ItemsSource = new[] { new LineViewModel(0, new string('W', 120), new RegexBasedLineParser(meta),
-                new Selection(), new TransformationPerformer(Array.Empty<string>())) };
+                new Selection(), new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings) };
             var view = CreateView(regex, bindCells: true);
             list.View = view;
             WithWindow(list, window =>
@@ -161,7 +162,7 @@ public class GridProfileTransitionTests
         var parser = new RegexBasedLineParser(meta);
         return Enumerable.Range(0, 90).Select(index => new LineViewModel(index,
             "12:34 INFO context process IPC message", parser, new Selection(),
-            new TransformationPerformer(Array.Empty<string>()))).ToArray();
+            new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings)).ToArray();
     }
 
     private static GridView CreateView(string regex, bool bindCells = false)
@@ -172,8 +173,10 @@ public class GridProfileTransitionTests
         var meta = new LogMetaInformation(format);
         var indexer = new EmptyIndexer();
         var filters = new FilterSettings(indexer, meta);
-        var view = (GridView)new GridViewFactory(meta, true,
-            (field, dispatcher) => new FilterViewModel(field, filters, indexer, meta, dispatcher)).CreateView(null);
+        var dispatcher = new Platform.WpfUiDispatcher(Dispatcher.CurrentDispatcher);
+        var model = new LogGridModel(meta, new ColumnSettings(),
+            field => new FilterViewModel(field, filters, indexer, meta, dispatcher));
+        var view = (GridView)GridViewFactory.CreateView(model, null);
         view.Columns.RemoveAt(0);
         for (var index = 0; index < view.Columns.Count; index++)
         {

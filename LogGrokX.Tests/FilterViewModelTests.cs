@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using LogGrokX.Controls.GridView;
+using LogGrokX.Controls.ListControls;
 using LogGrokX.Data;
 using LogGrokX.Data.Index;
 using LogGrokX.Filter;
@@ -58,7 +59,7 @@ public class FilterViewModelTests
     private static FilterViewModel CreateFilter(TestIndexer indexer)
     {
         var meta = new LogMetaInformation(new LogFormat { Regex = "^(?<Level>.*)", IndexedFields = ["Level"] });
-        return new FilterViewModel("Level", new FilterSettings(indexer, meta), indexer, meta, Dispatcher.CurrentDispatcher);
+        return new FilterViewModel("Level", new FilterSettings(indexer, meta), indexer, meta, new Platform.WpfUiDispatcher(Dispatcher.CurrentDispatcher));
     }
 
     [TestMethod]
@@ -69,7 +70,7 @@ public class FilterViewModelTests
             var indexer = new TestIndexer(["INFO"]);
             var meta = new LogMetaInformation(new LogFormat { Regex = "^(?<Level>.*)", IndexedFields = ["Level"] });
             var settings = new FilterSettings(indexer, meta);
-            var filter = new FilterViewModel("Level", settings, indexer, meta, Dispatcher.CurrentDispatcher);
+            var filter = new FilterViewModel("Level", settings, indexer, meta, new Platform.WpfUiDispatcher(Dispatcher.CurrentDispatcher));
             var filterChanges = 0;
             var elementChanges = 0;
             filter.PropertyChanged += (_, _) => filterChanges++;
@@ -89,18 +90,19 @@ public class FilterViewModelTests
     }
 
     [TestMethod]
-    public void RecreatedViewsReuseFiltersAndFactoryDisposalReleasesThem()
+    public void RecreatedViewsReuseFiltersAndModelDisposalReleasesThem()
     {
         RunOnSta(() =>
         {
             var indexer = new TestIndexer(["INFO"]);
             var meta = new LogMetaInformation(new LogFormat { Regex = "^(?<Level>.*)", IndexedFields = ["Level"] });
             var settings = new FilterSettings(indexer, meta);
-            using var factory = new GridViewFactory(meta, true,
-                (field, dispatcher) => new FilterViewModel(field, settings, indexer, meta, dispatcher));
+            var dispatcher = new Platform.WpfUiDispatcher(Dispatcher.CurrentDispatcher);
+            using var model = new LogGridModel(meta, new ColumnSettings(),
+                field => new FilterViewModel(field, settings, indexer, meta, dispatcher));
             FilterViewModel GetFilter()
             {
-                var view = (GridView)factory.CreateView(null);
+                var view = (GridView)GridViewFactory.CreateView(model, null);
                 var template = view.Columns[^1].HeaderTemplate;
                 template.Seal();
                 return ((HeaderViewModel)((FrameworkElement)template.LoadContent()).DataContext).FilterViewModel!;
@@ -110,7 +112,7 @@ public class FilterViewModelTests
             for (var i = 0; i < 20; i++)
                 Assert.AreSame(first, GetFilter());
             Assert.AreEqual(1, indexer.SubscriberCount);
-            factory.Dispose();
+            model.Dispose();
             Assert.AreEqual(0, indexer.SubscriberCount);
         });
     }
@@ -128,7 +130,7 @@ public class FilterViewModelTests
             {
                 Assert.IsNull(Dispatcher.FromThread(Thread.CurrentThread));
                 Assert.ThrowsExactly<InvalidOperationException>(() =>
-                    new FilterViewModel("Level", settings, indexer, meta, dispatcher));
+                    new FilterViewModel("Level", settings, indexer, meta, new Platform.WpfUiDispatcher(dispatcher)));
                 Assert.IsNull(Dispatcher.FromThread(Thread.CurrentThread));
             }).GetAwaiter().GetResult();
             Assert.AreEqual(0, indexer.SubscriberCount);
@@ -152,9 +154,11 @@ public class FilterViewModelTests
                     LogFormats = [new LogFormat { Regex = "^(?<Level>.*)", IndexedFields = ["Level"] }]
                 };
                 using var container = new DocumentContainer(path, profile, settings, new SearchAutocompleteCache(),
-                    new SavedSearchPatternStore(), new TimelinePlacementService(settings), new ThreadGroupingService(settings));
+                    new SavedSearchPatternStore(), new TimelinePlacementService(settings), new ThreadGroupingService(settings),
+                    new Platform.WpfUiDispatcher(Dispatcher.CurrentDispatcher), TestServices.Desktop, new Platform.WpfColorValidator(),
+                    TestServices.DisplaySettings);
                 document = container.GetDocumentViewModel();
-                var view = (GridView)document.LogViewModel.CustomView;
+                var view = (GridView)new LogGridViewConverter().Convert(document.LogViewModel.CustomView, typeof(GridView), null!, System.Globalization.CultureInfo.InvariantCulture);
                 var template = view.Columns[^1].HeaderTemplate;
                 template.Seal();
                 var filter = ((HeaderViewModel)((FrameworkElement)template.LoadContent()).DataContext).FilterViewModel!;

@@ -85,7 +85,7 @@ public class HexTextTests
     public void DecodesHexCryptoApiPublicKeyBlobInsideXml()
     {
         var source = $"<data>{CreateCryptoApiRsaPublicKeyHex()}</data>";
-        var part = new LinePartViewModel(1, source);
+        var part = new LinePartViewModel(1, source, TestServices.DisplaySettings);
 
         Assert.IsTrue(HexText.ContainsDecodableHex(source));
         Assert.IsTrue(part.IsHex);
@@ -99,7 +99,7 @@ public class HexTextTests
     public void DecodesHexCryptoApiPublicKeyBlobInsideJson()
     {
         var source = $"{{\"data\":\"{CreateCryptoApiRsaPublicKeyHex()}\"}}";
-        var part = new LinePartViewModel(1, source);
+        var part = new LinePartViewModel(1, source, TestServices.DisplaySettings);
 
         Assert.IsTrue(HexText.ContainsDecodableHex(source));
         Assert.IsTrue(part.IsHex);
@@ -190,7 +190,7 @@ public class HexTextTests
     {
         using var certificate = CreateCertificate();
         var hex = Convert.ToHexString(Encoding.UTF8.GetBytes(certificate.ExportCertificatePem()));
-        var part = new LinePartViewModel(1, $"{{\"certificate\":\"{hex}\"}}");
+        var part = new LinePartViewModel(1, $"{{\"certificate\":\"{hex}\"}}", TestServices.DisplaySettings);
 
         Assert.IsTrue(part.IsHex);
         part.IsHexDecoded = true;
@@ -205,7 +205,7 @@ public class HexTextTests
     {
         using var certificate = CreateCertificate();
         var hex = Convert.ToHexString(Encoding.UTF8.GetBytes(certificate.ExportCertificatePem()));
-        var part = new LinePartViewModel(1, $"data {hex}");
+        var part = new LinePartViewModel(1, $"data {hex}", TestServices.DisplaySettings);
 
         Assert.IsTrue(part.IsHex);
         part.IsHexDecoded = true;
@@ -244,7 +244,7 @@ public class HexTextTests
     [TestMethod]
     public void JsonStaysFoldableAfterHexDecoding()
     {
-        var part = new LinePartViewModel(1, "{\"data\":\"48656C6C6F20776F726C64\",\"items\":[1,2]}");
+        var part = new LinePartViewModel(1, "{\"data\":\"48656C6C6F20776F726C64\",\"items\":[1,2]}", TestServices.DisplaySettings);
 
         part.IsHexDecoded = true;
 
@@ -311,7 +311,7 @@ public class HexTextTests
     [TestMethod]
     public void LinePartSwitchesTextModelWhenHexDecoded()
     {
-        var part = new LinePartViewModel(1, "data 48656C6C6F20776F726C64");
+        var part = new LinePartViewModel(1, "data 48656C6C6F20776F726C64", TestServices.DisplaySettings);
         var original = part.TextModel;
 
         Assert.IsTrue(part.IsHex);
@@ -328,7 +328,7 @@ public class HexTextTests
     [TestMethod]
     public void LinePartWithoutHexCannotBeDecoded()
     {
-        var part = new LinePartViewModel(1, "plain message");
+        var part = new LinePartViewModel(1, "plain message", TestServices.DisplaySettings);
 
         Assert.IsFalse(part.IsHex);
         part.IsHexDecoded = true;
@@ -339,7 +339,7 @@ public class HexTextTests
     [TestMethod]
     public void RowBinToggleDecodesHex()
     {
-        var part = new LinePartViewModel(1, "data 48656C6C6F20776F726C64");
+        var part = new LinePartViewModel(1, "data 48656C6C6F20776F726C64", TestServices.DisplaySettings);
 
         part.IsDecoded = true;
 
@@ -355,7 +355,7 @@ public class HexTextTests
     [TestMethod]
     public void HexAndBase64AreDecodedTogether()
     {
-        var part = new LinePartViewModel(1, "hex 48656C6C6F20776F726C64 b64 eyJpZCI6NDIsIm9rIjp0cnVlfQ==");
+        var part = new LinePartViewModel(1, "hex 48656C6C6F20776F726C64 b64 eyJpZCI6NDIsIm9rIjp0cnVlfQ==", TestServices.DisplaySettings);
 
         Assert.IsTrue(part.IsHex);
         Assert.IsTrue(part.IsBase64);
@@ -369,7 +369,7 @@ public class HexTextTests
     [TestMethod]
     public void IndexPartDoesNotDetectHex()
     {
-        var part = new LinePartViewModel(1, "41424344", detectBase64: false);
+        var part = new LinePartViewModel(1, "41424344", TestServices.DisplaySettings, detectBase64: false);
 
         Assert.IsFalse(part.IsHex);
     }

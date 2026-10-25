@@ -32,8 +32,8 @@ namespace LogGrokX.Tests
             var meta = new LogMetaInformation(new LogFormat { Regex = RegexPattern });
             var parser = new RegexBasedLineParser(meta);
             var transformation = new TransformationPerformer(Array.Empty<string>());
-            var line = new LineViewModel(0, Source, parser, new Selection(), transformation);
-            var equivalent = new LineViewModel(0, Source, parser, new Selection(), transformation);
+            var line = new LineViewModel(0, Source, parser, new Selection(), transformation, TestServices.DisplaySettings);
+            var equivalent = new LineViewModel(0, Source, parser, new Selection(), transformation, TestServices.DisplaySettings);
             var replacement = CreateLine(new LogMetaInformation(new LogFormat { Regex = "^.*$" }));
 
             Assert.AreEqual(line, equivalent);
@@ -90,7 +90,7 @@ namespace LogGrokX.Tests
         {
             var parser = new RegexBasedLineParser(meta);
             return new LineViewModel(0, source, parser, new Selection(),
-                new TransformationPerformer(Array.Empty<string>()));
+                new TransformationPerformer(Array.Empty<string>()), TestServices.DisplaySettings);
         }
     }
 }

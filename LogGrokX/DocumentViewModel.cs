@@ -1,8 +1,8 @@
+using LogGrokX.Platform.Colors;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,6 +12,7 @@ using LogGrokX.Colors;
 using LogGrokX.Controls;
 using LogGrokX.Controls.TextRender;
 using LogGrokX.Data;
+using LogGrokX.Platform;
 using LogGrokX.Data.Index;
 using LogGrokX.Search;
 
@@ -19,6 +20,7 @@ namespace LogGrokX
 {
     public class DocumentViewModel : ViewModelBase
     {
+        private readonly IDesktopService _desktop;
         private readonly Selection _markedLines;
         private bool _isCurrentDocument;
         private readonly LineProvider _lineProvider;
@@ -35,11 +37,13 @@ namespace LogGrokX
             LogViewModel logViewModel, 
             SearchViewModel searchViewModel,
             Selection markedLines,
-            ColorSettings colorSettings,
+            ColorRuleSet colorSettings,
             TransformationPerformer transformationPerformer,
             TextViewSharedFoldingState foldingState,
-            TimeIndex timeIndex)
+            TimeIndex timeIndex, IDesktopService desktop, DisplaySettingsMonitor displaySettings)
         {
+            DisplaySettings = displaySettings ?? throw new ArgumentNullException(nameof(displaySettings));
+            _desktop = desktop ?? throw new ArgumentNullException(nameof(desktop));
             var logFileFilePath = logModelFacade.LogFile.FilePath;
             
             Title = 
@@ -69,11 +73,11 @@ namespace LogGrokX
             LogViewModel.Lines.CollectionGrown += OnLinesGrown;
 
             CopyPathToClipboardCommand =
-                new DelegateCommand(() => TextCopy.ClipboardService.SetText(logFileFilePath));
+                new DelegateCommand(() => _desktop.SetClipboardText(logFileFilePath));
 
-            CopyFilenameToClipboardCommand = new DelegateCommand(() => TextCopy.ClipboardService.SetText(Path.GetFileName(logFileFilePath)));
+            CopyFilenameToClipboardCommand = new DelegateCommand(() => _desktop.SetClipboardText(Path.GetFileName(logFileFilePath)));
 
-            OpenContainingFolderCommand = new DelegateCommand(() => OpenContainingFolder(logFileFilePath));
+            OpenContainingFolderCommand = new DelegateCommand(() => _desktop.RevealFile(logFileFilePath));
             FindNextCommand = new DelegateCommand(() => SearchViewModel.FindNext(GetSearchAnchor()));
             FindPreviousCommand = new DelegateCommand(() => SearchViewModel.FindPrevious(GetSearchAnchor()));
             DocumentId = logFileFilePath;
@@ -87,6 +91,8 @@ namespace LogGrokX
 
             return SearchViewModel.CurrentMatchLine;
         }
+
+        internal DisplaySettingsMonitor DisplaySettings { get; }
 
         public string DocumentId { get; }
     
@@ -160,7 +166,7 @@ namespace LogGrokX
 
         internal ILineParser LineParser => _lineParser;
 
-        public ColorSettings ColorSettings { get; }
+        public ColorRuleSet ColorSettings { get; }
 
         public TextViewSharedFoldingState FoldingState { get; }
 
@@ -225,20 +231,10 @@ namespace LogGrokX
             set => SetAndRaiseIfChanged(ref _isCurrentDocument, value);
         }
         
-        private void OpenContainingFolder(string path)
-        {
-            var filePath = path;
-
-            var cmdLine = File.Exists(filePath)
-                ? $"/select, {filePath}"
-                : $"/select, {Directory.GetParent(filePath)?.FullName}";
-
-            _ = Process.Start("explorer.exe", cmdLine);
-        }
-
         public void CloseFile()
         {
             LogViewModel.Lines.CollectionGrown -= OnLinesGrown;
+            SearchViewModel.Dispose();
             _fileHolder.Dispose();
         }
     }

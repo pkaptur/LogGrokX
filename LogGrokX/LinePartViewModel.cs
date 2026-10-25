@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using LogGrokX.Data;
 
 namespace LogGrokX;
@@ -13,8 +12,6 @@ public class LinePartViewModel : ViewModelBase
     private readonly Func<FieldValueMapper>? _valueMapperResolver;
     private readonly DecodedPartKey? _decodedState;
     private int _decodedStateVersion = -1;
-    // Keeps the handler alive: the static weak events hold only a WeakReference to the delegate.
-    private readonly Action? _onDisplaySettingsChanged;
     private BinaryDetectionOptions _detection;
     private FieldValueMapper _valueMapper;
     private int _detectionVersion;
@@ -29,10 +26,11 @@ public class LinePartViewModel : ViewModelBase
     private bool? _isHex;
     private bool _isHexDecoded;
 
-    public LinePartViewModel(int uniqueId, string source, bool detectBase64 = true,
+    public LinePartViewModel(int uniqueId, string source, DisplaySettingsMonitor displaySettings, bool detectBase64 = true,
         BinaryDetectionOptions? detection = null, FieldValueMapper? valueMapper = null,
         Func<FieldValueMapper>? valueMapperResolver = null, DecodedPartKey? decodedState = null)
     {
+        ArgumentNullException.ThrowIfNull(displaySettings);
         _uniqueId = uniqueId;
         _decodedState = decodedState;
         _valueMapperResolver = valueMapperResolver;
@@ -45,9 +43,7 @@ public class LinePartViewModel : ViewModelBase
         OriginalText = source;
         if (_followDetectionChanges || valueMapperResolver != null)
         {
-            _onDisplaySettingsChanged = OnDisplaySettingsChanged;
-            BinaryDetectionOptions.CurrentChanged += _onDisplaySettingsChanged;
-            ValueMapper.CurrentChanged += _onDisplaySettingsChanged;
+            displaySettings.Register(this);
         }
     }
 
@@ -248,26 +244,7 @@ public class LinePartViewModel : ViewModelBase
             HashCode.Combine(_uniqueId, nameof(Base64Content), key), text);
     }
 
-    private void OnDisplaySettingsChanged()
-    {
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher == null || dispatcher.CheckAccess())
-        {
-            RefreshSettingsIfNeeded();
-            return;
-        }
-
-        try
-        {
-            dispatcher.BeginInvoke(RefreshSettingsIfNeeded);
-        }
-        catch (InvalidOperationException)
-        {
-            // The dispatcher is shutting down; the part refreshes lazily on next access.
-        }
-    }
-
-    private void RefreshSettingsIfNeeded()
+    internal void RefreshSettingsIfNeeded()
     {
         RefreshDisplaySettingsIfNeeded();
         SyncDecodedState();

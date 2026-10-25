@@ -39,7 +39,7 @@ public class DecodedPartsStateTests
     private static readonly TransformationPerformer NoTransformations = new(Array.Empty<string>());
 
     private static LineViewModel CreateLine(int index, string source, DecodedPartsState state) =>
-        new(index, source, Parser, new Selection(), NoTransformations, decodedParts: state);
+        new(index, source, Parser, new Selection(), NoTransformations, TestServices.DisplaySettings, decodedParts: state);
 
     [TestMethod]
     public void RecreatedLineKeepsBinToggle()

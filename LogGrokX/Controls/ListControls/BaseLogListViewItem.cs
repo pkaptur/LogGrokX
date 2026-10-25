@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LogGrokX.Platform.Colors;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -210,7 +211,7 @@ namespace LogGrokX.Controls.ListControls
         private void UpdateColorOverride()
         {
             var colorSettings = ColorSettings.GetColorSettings(this);
-            ColorSettings.ColorRule? rule = null;
+            ColorRuleDefinition? rule = null;
             var rules = colorSettings?.Rules;
             if (rules is { Count: > 0 } && Content?.ToString() is { } text)
             {
@@ -229,8 +230,8 @@ namespace LogGrokX.Controls.ListControls
                 return;
 
             var isDark = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark;
-            _overrideForeground = rule?.GetForegroundBrush(isDark);
-            _overrideBackground = rule?.GetBackgroundBrush(isDark);
+            _overrideForeground = ColorBrushes.GetForegroundBrush(rule, isDark);
+            _overrideBackground = ColorBrushes.GetBackgroundBrush(rule, isDark);
             CoerceValue(ForegroundProperty);
             CoerceValue(BackgroundProperty);
         }

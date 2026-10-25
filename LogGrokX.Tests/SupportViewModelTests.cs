@@ -8,7 +8,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void DiagnosticsTextContainsVersionRuntimeAndArchitecture()
         {
-            var viewModel = new SupportViewModel();
+            var viewModel = new SupportViewModel(TestServices.Updates, TestServices.Desktop);
 
             StringAssert.Contains(viewModel.DiagnosticsText, viewModel.Version);
             StringAssert.Contains(viewModel.DiagnosticsText, viewModel.RuntimeVersion);
@@ -18,7 +18,7 @@ namespace LogGrokX.Tests
         [TestMethod]
         public void CommitIsShortened()
         {
-            var viewModel = new SupportViewModel();
+            var viewModel = new SupportViewModel(TestServices.Updates, TestServices.Desktop);
 
             Assert.IsTrue(viewModel.Commit.Length <= 8, viewModel.Commit);
         }

@@ -4,7 +4,7 @@ namespace LogGrokX
     {
         public LinePartViewModel Text { get; }
 
-        public  LogHeaderViewModel(string text) => Text = new LinePartViewModel(-1, text);
+        public  LogHeaderViewModel(string text, DisplaySettingsMonitor displaySettings) => Text = new LinePartViewModel(-1, text, displaySettings);
 
         public override string ToString() => Text.OriginalText;
     }

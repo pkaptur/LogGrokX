@@ -1,3 +1,4 @@
+using LogGrokX.Platform.Colors;
 using System;
 using System.Collections.Generic;
 using LogGrokX.Colors;
@@ -10,17 +11,16 @@ namespace LogGrokX.MarkedLines
     {
         public DocumentViewModel Document { get; }
         public LinePartViewModel Text { get; }
-        public ColorSettings ColorSettings { get; }
+        public ColorRuleSet ColorSettings => Document.ColorSettings;
 
         public MarkedLineViewModel(DocumentViewModel document, int lineNumber, string text)
-            : base(lineNumber, document.MarkedLines)        
+            : base(lineNumber, document.MarkedLines, document.DisplaySettings)
         {
             Document = document;
 
             var uniqueId = HashCode.Combine(lineNumber, document.GetFoldingComponentIndex(text));
-            Text = new LinePartViewModel(uniqueId, text,
+            Text = new LinePartViewModel(uniqueId, text, DisplaySettings,
                 valueMapperResolver: () => ValueMapper.Current.ForField(null));
-            ColorSettings = document.ColorSettings;
         }
 
         protected override IEnumerable<LinePartViewModel> GetDecodableParts() => new[] { Text };

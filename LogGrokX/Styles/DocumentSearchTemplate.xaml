@@ -14,6 +14,7 @@
                     xmlns:avalonDockExtensions="clr-namespace:LogGrokX.AvalonDockExtensions"
                     mc:Ignorable="d">
     <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="PresentationConverters.xaml" />
         <ResourceDictionary Source="ListViewItemStyle.xaml" />
         <ResourceDictionary Source="ToggleButtonStyle.xaml" />
         <ResourceDictionary Source="LogViewContextMenu.xaml"/>
@@ -48,7 +49,7 @@
                                ReadonlySelectedItems="{Binding SelectedItems, Mode=OneWayToSource}"
                                FontFamily="{StaticResource JetBrainsMono}"
                                FontSize="{DynamicResource LogFontSize}"
-                               View="{Binding CustomView}"
+                               View="{Binding CustomView, Converter={StaticResource LogGridViewConverter}}"
                                VirtualizingStackPanel.IsVirtualizing="True"
                                VirtualizingStackPanel.VirtualizationMode="Recycling"
                                controls:NavigateToLineBehavior.NavigateToLineRequest=
@@ -166,6 +167,10 @@
                         BorderThickness="1"
                         CornerRadius="8">
                     <Grid Margin="12">
+                        <Grid.Resources>
+                            <controls:SavedSearchCollectionViewSource x:Key="FilteredSavedSearches"
+                                Source="{Binding SavedSearches}" FilterText="{Binding SavedSearchFilter}" />
+                        </Grid.Resources>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -179,7 +184,7 @@
                         <ListBox Grid.Row="1"
                                  MinHeight="80"
                                  HorizontalContentAlignment="Stretch"
-                                 ItemsSource="{Binding SavedSearches}">
+                                 ItemsSource="{Binding Source={StaticResource FilteredSavedSearches}}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type search:SavedSearchPattern}">
                                     <Grid>

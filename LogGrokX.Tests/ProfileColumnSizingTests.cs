@@ -160,7 +160,7 @@ public class ProfileColumnSizingTests
     {
         var list = new FrameworkElementFactory(typeof(LogListView));
         list.SetBinding(ItemsControl.ItemsSourceProperty, new Binding("Lines"));
-        list.SetBinding(ListView.ViewProperty, new Binding("CustomView"));
+        list.SetBinding(ListView.ViewProperty, new Binding("CustomView") { Converter = new LogGridViewConverter() });
         list.SetBinding(LogListView.ColumnSettingsProperty, new Binding("ColumnSettings"));
         list.SetBinding(LogListView.IsLoadingProperty, new Binding("IsLoading"));
         list.SetValue(ItemsControl.ItemContainerStyleProperty, resources["LogGridItemContainerStyle"]);
@@ -210,7 +210,7 @@ public class ProfileColumnSizingTests
 
     private static string RepositoryRoot => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
-    private static ResourceDictionary LoadAppResources()
+    internal static ResourceDictionary LoadAppResources()
     {
         var source = XDocument.Load(Path.Combine(RepositoryRoot, "LogGrokX", "Bootstrap", "App.xaml")).Root!;
         XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
@@ -224,11 +224,7 @@ public class ProfileColumnSizingTests
         return (ResourceDictionary)XamlReader.Parse(dictionary.ToString());
     }
 
-    private static MainWindowViewModel CreateMain(ApplicationSettings settings) => new(settings,
-        new SearchAutocompleteCache(), new SavedSearchPatternStore(), new UiThemeService(),
-        new TimelinePlacementService(settings), new TextZoomService(settings),
-        new ThreadGroupingService(settings), new MergedFilesViewService(),
-        new UpdateCheckService(settings), documents => new MarkedLinesViewModel(documents));
+    private static MainWindowViewModel CreateMain(ApplicationSettings settings) => TestServices.CreateMain(settings);
 
     private static void WaitForSizing(Window window)
     {

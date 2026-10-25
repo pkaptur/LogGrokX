@@ -18,7 +18,7 @@ public class BinaryDetectionOptionsTests
     [TestMethod]
     public void AllKindsAreDetectedByDefault()
     {
-        var part = new LinePartViewModel(1, Mixed, detection: BinaryDetectionOptions.All);
+        var part = new LinePartViewModel(1, Mixed, TestServices.DisplaySettings, detection: BinaryDetectionOptions.All);
 
         Assert.IsTrue(part.IsPem);
         Assert.IsTrue(part.IsBase64);
@@ -28,7 +28,7 @@ public class BinaryDetectionOptionsTests
     [TestMethod]
     public void NothingIsDetectedWhenDisabled()
     {
-        var part = new LinePartViewModel(1, Mixed, detection: BinaryDetectionOptions.None);
+        var part = new LinePartViewModel(1, Mixed, TestServices.DisplaySettings, detection: BinaryDetectionOptions.None);
 
         Assert.IsFalse(part.IsPem);
         Assert.IsFalse(part.IsBase64);
@@ -46,7 +46,7 @@ public class BinaryDetectionOptionsTests
     [DataRow(true, false, false)]
     public void OnlySelectedKindsAreDetected(bool pem, bool base64, bool hex)
     {
-        var part = new LinePartViewModel(1, Mixed, detection: new BinaryDetectionOptions(pem, base64, hex));
+        var part = new LinePartViewModel(1, Mixed, TestServices.DisplaySettings, detection: new BinaryDetectionOptions(pem, base64, hex));
 
         Assert.AreEqual(pem, part.IsPem);
         Assert.AreEqual(base64, part.IsBase64);
@@ -56,7 +56,7 @@ public class BinaryDetectionOptionsTests
     [TestMethod]
     public void BinToggleDecodesOnlySelectedKinds()
     {
-        var part = new LinePartViewModel(1, Mixed, detection: new BinaryDetectionOptions(false, false, true));
+        var part = new LinePartViewModel(1, Mixed, TestServices.DisplaySettings, detection: new BinaryDetectionOptions(false, false, true));
 
         part.IsDecoded = true;
 
@@ -69,7 +69,7 @@ public class BinaryDetectionOptionsTests
     [TestMethod]
     public void DisabledIndexDetectionIgnoresOptions()
     {
-        var part = new LinePartViewModel(1, Hex, detectBase64: false, detection: BinaryDetectionOptions.All);
+        var part = new LinePartViewModel(1, Hex, TestServices.DisplaySettings, detectBase64: false, detection: BinaryDetectionOptions.All);
 
         Assert.IsFalse(part.IsHex);
         Assert.IsFalse(part.IsBase64);

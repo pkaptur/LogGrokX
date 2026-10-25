@@ -115,8 +115,8 @@ public class MainWindowViewModelLifecycleTests
                 viewModel.AddDocument(fileName);
                 var log = viewModel.CurrentDocument!.LogViewModel;
                 var merged = viewModel.MergedViewModel;
-                Assert.AreEqual(Dock.Top, log.TimelineDock);
-                Assert.AreEqual(Dock.Top, merged.TimelineDock);
+                Assert.IsTrue(log.IsTimelineAtTop);
+                Assert.IsTrue(merged.IsTimelineAtTop);
                 Assert.IsTrue(viewModel.IsTimelineVisible);
 
                 foreach (var (visible, dock) in new[]
@@ -128,8 +128,8 @@ public class MainWindowViewModelLifecycleTests
                     Assert.AreEqual(visible, viewModel.IsTimelineVisible);
                     Assert.AreEqual(visible, log.IsTimelineVisible);
                     Assert.AreEqual(visible, merged.IsTimelineVisible);
-                    Assert.AreEqual(dock, log.TimelineDock);
-                    Assert.AreEqual(dock, merged.TimelineDock);
+                    Assert.AreEqual(dock == Dock.Top, log.IsTimelineAtTop);
+                    Assert.AreEqual(dock == Dock.Top, merged.IsTimelineAtTop);
 
                     var saved = new ViewSettings();
                     new ConfigurationBuilder().AddYamlFile(settingsPath, false, false).Build()
@@ -205,17 +205,7 @@ public class MainWindowViewModelLifecycleTests
     private static MainWindowViewModel CreateViewModel(ApplicationSettings? settings = null)
     {
         settings ??= ApplicationSettings.Instance();
-        return new MainWindowViewModel(
-            settings,
-            new SearchAutocompleteCache(),
-            new SavedSearchPatternStore(),
-            new UiThemeService(),
-            new TimelinePlacementService(settings),
-            new TextZoomService(settings),
-            new ThreadGroupingService(settings),
-            new MergedFilesViewService(),
-            new UpdateCheckService(settings),
-            documents => new MarkedLinesViewModel(documents));
+        return TestServices.CreateMain(settings);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

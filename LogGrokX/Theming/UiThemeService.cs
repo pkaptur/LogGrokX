@@ -5,17 +5,18 @@ using System.Text.Json;
 using System.Windows;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
+using LogGrokX.Platform;
 
 namespace LogGrokX.Theming
 {
-    public class UiThemeService
+    public class UiThemeService : IThemeService
     {
         public const string LightTheme = "Light";
         public const string DarkTheme = "Dark";
 
         private readonly string _storeFileName =
             HomeDirectoryPathProvider.GetDataFileFullPath("Theme.json");
-        private ViewSettings.AccentColorKind _accentColor = ViewSettings.AccentColorKind.Blue;
+        private AccentColorKind _accentColor = AccentColorKind.Blue;
 
         public UiThemeService()
         {
@@ -28,7 +29,7 @@ namespace LogGrokX.Theming
 
         public bool IsDark => CurrentTheme.StartsWith("Dark", StringComparison.OrdinalIgnoreCase);
 
-        public void ApplySavedTheme(ViewSettings.AccentColorKind accentColor = ViewSettings.AccentColorKind.Blue)
+        public void ApplySavedTheme(AccentColorKind accentColor = AccentColorKind.Blue)
         {
             _accentColor = AccentColorPalette.Normalize(accentColor);
             Apply(CurrentTheme);
@@ -50,18 +51,19 @@ namespace LogGrokX.Theming
             ["CheckBoxCheckBackgroundFillCheckedPressed"] = "AccentFillColorTertiary"
         };
 
-        public void ApplyAccentColor(ViewSettings.AccentColorKind accentColor)
+        public void ApplyAccentColor(AccentColorKind accentColor)
         {
             _accentColor = AccentColorPalette.Normalize(accentColor);
             try
             {
                 var previousBrushes = CaptureAccentBrushes(Application.Current.Resources);
                 ApplicationAccentColorManager.Apply(
-                    AccentColorPalette.GetColor(_accentColor),
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(AccentColorPalette.GetColor(_accentColor)),
                     ApplicationThemeManager.GetAppTheme());
                 ApplyDerivedAccentBrushes(Application.Current.Resources, previousBrushes);
                 foreach (var resources in Application.Current.Resources.MergedDictionaries.OfType<DockThemeResources>())
                     resources.ApplyAccentColor();
+                DockThemes.ApplyAccentColor();
                 AccentColorChanged?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception)
