@@ -806,6 +806,22 @@ The Settings window is organised into tabs:
 Open it from the **settings** button in the title bar; changes take effect after
 **Save** (a few options only apply to logs opened afterwards).
 
+If **Save** finds problems, the window lists them and, when some of them can be
+repaired, offers **Fix and save** with a description of every change (#91):
+invalid line length threshold or dump count are reset to their defaults, empty
+or duplicate profile names get unique names, indexed fields are matched to the
+regex group with the same name ignoring case or removed, invalid transformations
+and XOR masks are dropped, an invalid color rule regex is escaped to plain text,
+invalid colors are reset, and value mapping items without a value or with a
+duplicate value are removed (the first one is kept). An invalid log format regex
+cannot be fixed automatically and stays in the error list.
+
+Every problem and every proposed fix is a link: clicking it opens the tab with
+the offending setting, selects its profile, log format, color rule or value
+mapping item, and focuses the field (a grid cell is opened for editing).
+Clicking an item in the list of proposed fixes applies only that fix, refreshes
+both lists and focuses the repaired field.
+
 The title bar groups file opening, text zoom, timeline placement, thread
 grouping, merged view, theme, support and settings tools beside the profile
 selector. Hover an icon for its tooltip. The timeline button cycles through

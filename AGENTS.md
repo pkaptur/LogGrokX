@@ -422,6 +422,22 @@ Covered by `MergedLineOrderTests`/`TimeIndexTests` (`LogGrokX.Data.Tests`) and
   `ICallStackPresenter` (`WpfCallStackPresenter`); its source viewer colors C/C++
   with `Data/Symbols/CppSyntax` tokens via `Controls/SourceCodeTextBlock` and
   centers `CurrentSourceLine` in item scroll units (`CallStackWindow.CenterLine`).
+- **Settings auto-fix** (#91): `SettingsViewModel.Save` fills `AutoFixes`
+  (descriptions from `GetAutoFixes` in `Settings/SettingsViewModel.AutoFix.cs`)
+  when validation fails; `FixAndSave` applies every fix and saves again, and the
+  settings window shows the list with a **Fix and save** button
+  (`OnFixAndSaveClick`). Each `Validate` error that has a safe repair needs a
+  matching fix there; an invalid log format regex has none on purpose.
+  `Validate` returns `SettingsProblem`s (`Settings/SettingsProblem.cs`: message,
+  `SettingsField` and the owning profile / log format / color rule / mapping
+  list and item), published as `Problems`; `AutoFixes` are problems as well.
+  Clicking one calls `SettingsViewModel.NavigateTo`, which selects the owners and
+  raises `NavigationRequested`; `SettingsWindow.OnNavigationRequested` switches
+  tabs and focuses the field (log format boxes are found by their
+  `Tag="{x:Static settings:SettingsField.*}"`, grid cells via `FocusCell`).
+  Clicking a proposed fix calls `ApplyAutoFix`: it finds the fix whose problem
+  equals the clicked one (records compare by value), applies it, re-runs
+  validation (`Revalidate`, no save) and navigates to the field.
 - The app writes diagnostic logs to `%LOCALAPPDATA%\LogGrokX\`.
 - Runtime configuration is `appsettings.yaml` (watched and hot-reloaded),
   next to the executable.
